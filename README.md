@@ -25,6 +25,8 @@ Student browser ─┘
   | Data | Teacher | Student |
   |---|---|---|
   | Study weeks, tasks, homework, vocabulary | create / edit / delete | read |
+  | Tracks and Goals | create / edit / delete | read |
+  | Goal ticks | read | own rows only |
   | Task completions, homework scores & notes | read | own rows only |
   | Vocabulary "reviewed" marks | read | own rows only |
   | Test results | read | own rows only |
@@ -43,6 +45,9 @@ Student browser ─┘
 | `vocabulary` | Word, IPA, English definition, Vietnamese meaning, example, collocations. |
 | `vocab_reviews` | Words the student has marked as reviewed. |
 | `test_results` | Mock test scores: band (0–9, steps of 0.5) and correct answers out of total. |
+| `tracks` | Each skill's current Stage and the day it entered it (null until started). |
+| `goals` | The Goals of each Stage, with an optional due date. Edited by the teacher. |
+| `goal_completions` | Student ticks a Goal. Deleted with the Goal. |
 
 SQL files, run in order:
 
@@ -50,6 +55,8 @@ SQL files, run in order:
 2. `002_rls.sql` – Row Level Security policies
 3. `003_seed.sql` – the 8-week plan (80 tasks) and starter vocabulary (generated, see below)
 4. `004_set_teacher.sql` – gives the teacher account its role (run after creating users)
+5. `005_replace_plan.sql` – replaces the plan on an already seeded database
+6. `006_tracks_goals.sql` – Skill tracks, Stage Goals and Goal ticks, with the starting Goals
 
 ## Setup
 

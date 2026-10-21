@@ -67,6 +67,9 @@ export interface Goal {
   sortOrder: number
 }
 
+/** A Goal being added (no id yet) or edited. */
+export type GoalDraft = Omit<Goal, 'id'> & { id?: string }
+
 export interface TestResult {
   id: string
   date: string

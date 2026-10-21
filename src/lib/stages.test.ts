@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { canStart, gateStatus, nextStage } from '@/lib/stages'
+import { canStart, gateStatus, goalOverdue, nextStage, stagePosition, startsAfterLabel } from '@/lib/stages'
 import type { Goal, Skill, StageKey, TestResult, Track } from '@/types'
 
 const track = (skill: Skill, stage: StageKey | null, enteredOn: string | null = stage && '2026-11-01'): Track => ({ skill, stage, enteredOn })
@@ -82,5 +82,38 @@ describe('gateStatus', () => {
 
   test('a track that has not started has no Gate', () => {
     expect(gateStatus(track('Writing', null), [], new Set(), [])).toEqual({ met: false, label: 'Not started' })
+  })
+})
+
+describe('stagePosition', () => {
+  test('Stages before the current one are past, after it future', () => {
+    const t = track('Listening', 'focus')
+    expect(stagePosition(t, 'foundation')).toBe('past')
+    expect(stagePosition(t, 'diagnosis')).toBe('past')
+    expect(stagePosition(t, 'focus')).toBe('current')
+    expect(stagePosition(t, 'exam_ready')).toBe('future')
+  })
+  test('every Stage of a track not started is future', () => {
+    expect(stagePosition(track('Reading', null), 'foundation')).toBe('future')
+  })
+})
+
+describe('goalOverdue', () => {
+  const g = (dueDate?: string): Goal => ({ id: 'g', skill: 'Listening', stage: 'foundation', title: 'g', description: '', dueDate, sortOrder: 0 })
+  test('an open Goal is overdue only after its due date', () => {
+    expect(goalOverdue(g('2026-10-20'), false, '2026-10-21')).toBe(true)
+    expect(goalOverdue(g('2026-10-21'), false, '2026-10-21')).toBe(false)
+  })
+  test('a done Goal or one without a due date is never overdue', () => {
+    expect(goalOverdue(g('2026-10-20'), true, '2026-10-21')).toBe(false)
+    expect(goalOverdue(g(), false, '2026-10-21')).toBe(false)
+  })
+})
+
+describe('startsAfterLabel', () => {
+  test('names the track and Stage a skill waits for', () => {
+    expect(startsAfterLabel('Reading')).toBe('Starts after Listening Foundation')
+    expect(startsAfterLabel('Writing')).toBe('Starts after Reading Foundation')
+    expect(startsAfterLabel('Listening')).toBeNull()
   })
 })

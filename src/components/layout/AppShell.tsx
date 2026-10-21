@@ -1,5 +1,5 @@
 import { NavLink, Outlet } from 'react-router-dom'
-import { BookOpen, CalendarDays, ClipboardList, GraduationCap, LayoutDashboard, LineChart, LogOut, TriangleAlert } from 'lucide-react'
+import { BookOpen, CalendarDays, ClipboardList, GraduationCap, LayoutDashboard, LineChart, LogOut, Milestone, TriangleAlert } from 'lucide-react'
 import { useStore } from '@/lib/store'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
@@ -8,6 +8,7 @@ const NAV = [
   { to: '/', label: 'Dashboard', short: 'Home', icon: LayoutDashboard },
   { to: '/plan', label: 'Study Plan', short: 'Plan', icon: CalendarDays },
   { to: '/homework', label: 'Homework', short: 'Homework', icon: ClipboardList },
+  { to: '/stages', label: 'Stages', short: 'Stages', icon: Milestone },
   { to: '/vocabulary', label: 'Vocabulary', short: 'Vocab', icon: BookOpen },
   { to: '/errors', label: 'Error Log', short: 'Errors', icon: TriangleAlert },
   { to: '/progress', label: 'Progress', short: 'Progress', icon: LineChart },
@@ -88,7 +89,7 @@ export function AppShell() {
       </div>
 
       {/* Mobile bottom nav */}
-      <nav className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-6 border-t border-slate-200 bg-white pb-[env(safe-area-inset-bottom)] md:hidden">
+      <nav className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-7 border-t border-slate-200 bg-white pb-[env(safe-area-inset-bottom)] md:hidden">
         {NAV.map(({ to, short, icon: Icon }) => (
           <NavLink
             key={to}

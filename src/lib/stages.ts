@@ -71,6 +71,24 @@ export function nextStage(skill: Skill, key: StageKey): StageKey | null {
   return TRACKS[skill].stages[indexOf(skill, key) + 1]?.key ?? null
 }
 
+/** Where Stage `key` sits relative to the track's current Stage. A track not started has only future Stages. */
+export function stagePosition(track: Track, key: StageKey): 'past' | 'current' | 'future' {
+  if (track.stage === null) return 'future'
+  const diff = indexOf(track.skill, key) - indexOf(track.skill, track.stage)
+  return diff < 0 ? 'past' : diff === 0 ? 'current' : 'future'
+}
+
+/** An open Goal whose due date has passed. Due today is not overdue yet. */
+export function goalOverdue(goal: Goal, done: boolean, today: string): boolean {
+  return !done && goal.dueDate !== undefined && goal.dueDate < today
+}
+
+/** e.g. "Starts after Listening Foundation"; null for a track that waits for nothing. */
+export function startsAfterLabel(skill: Skill): string | null {
+  const after = TRACKS[skill].startsAfter
+  return after ? `Starts after ${after.skill} ${stageDef(after.skill, after.stage).name}` : null
+}
+
 /** True when `skill`'s track has not started yet and the track it waits for has moved past its Stage. */
 export function canStart(skill: Skill, tracks: Track[]): boolean {
   const stageOf = (s: Skill) => tracks.find((t) => t.skill === s)?.stage ?? null

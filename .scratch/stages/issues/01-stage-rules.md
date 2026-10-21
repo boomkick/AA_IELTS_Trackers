@@ -6,7 +6,7 @@ Background: `GLOSSARY.md`, `docs/adr/0001-stages-replace-dated-weekly-plan.md`, 
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 - [ ] A test command runs the unit tests and is part of the normal workflow.
 - [ ] Skill now includes Writing alongside Listening and Reading. Existing pages still build, and Writing gets its own badge colour.

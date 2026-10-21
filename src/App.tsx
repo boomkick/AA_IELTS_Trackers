@@ -7,6 +7,7 @@ import { Login } from '@/pages/Login'
 import { Dashboard } from '@/pages/Dashboard'
 import { StudyPlan } from '@/pages/StudyPlan'
 import { Homework } from '@/pages/Homework'
+import { Stages } from '@/pages/Stages'
 import { Vocabulary } from '@/pages/Vocabulary'
 import { ErrorLog } from '@/pages/ErrorLog'
 import { Progress } from '@/pages/Progress'
@@ -51,6 +52,7 @@ export default function App() {
             <Route index element={<Dashboard />} />
             <Route path="plan" element={<StudyPlan />} />
             <Route path="homework" element={<Homework />} />
+            <Route path="stages" element={<Stages />} />
             <Route path="vocabulary" element={<Vocabulary />} />
             <Route path="errors" element={<ErrorLog />} />
             <Route path="progress" element={<Progress />} />

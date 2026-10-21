@@ -5,7 +5,8 @@ import { QueryClient, QueryClientProvider, useQuery, useQueryClient } from '@tan
 import type { Session } from '@supabase/supabase-js'
 import { supabase, usernameToEmail } from '@/lib/supabase'
 import { toISO } from '@/lib/utils'
-import type { Completion, Role, Skill, StudyTask, StudyWeek, TaskType, TestResult, User, VocabItem } from '@/types'
+import type { Completion, Goal, GoalDraft, Role, Skill, StageKey, StudyTask, StudyWeek, TaskType, TestResult, Track, User, VocabItem } from '@/types'
+import { TRACKS } from '@/lib/stages'
 
 // ---------------------------------------------------------------------------
 // Row shapes (snake_case, as stored) and mappers to the app's camelCase types
@@ -21,6 +22,8 @@ interface VocabRow {
   id: string; word: string; ipa: string; definition_en: string; meaning_vi: string; example: string
   collocations: string[]; week_number: number | null
 }
+interface TrackRow { skill: Skill; stage: StageKey | null; entered_on: string | null }
+interface GoalRow { id: string; skill: Skill; stage: StageKey; title: string; description: string; due_date: string | null; sort_order: number }
 interface ResultRow { id: string; test_date: string; skill: Skill; band: number | string; correct: number; total_questions: number; notes: string | null }
 
 const hhmm = (t: string | null) => (t ? t.slice(0, 5) : undefined)
@@ -37,6 +40,14 @@ const toVocab = (r: VocabRow): VocabItem => ({
 const toResult = (r: ResultRow): TestResult => ({
   id: r.id, date: r.test_date, skill: r.skill, band: Number(r.band), correct: r.correct, total: r.total_questions, notes: r.notes ?? undefined,
 })
+
+const toTrack = (r: TrackRow): Track => ({ skill: r.skill, stage: r.stage, enteredOn: r.entered_on })
+const toGoal = (r: GoalRow): Goal => ({
+  id: r.id, skill: r.skill, stage: r.stage, title: r.title, description: r.description, dueDate: r.due_date ?? undefined, sortOrder: r.sort_order,
+})
+
+// course order (Listening, Reading, Writing)
+const SKILLS = Object.keys(TRACKS) as Skill[]
 
 async function rows<T>(query: PromiseLike<{ data: unknown; error: { message: string } | null }>): Promise<T[]> {
   const { data, error } = await query
@@ -88,11 +99,33 @@ function useStoreValue() {
   })
   const vocabQ = useQuery({ queryKey: ['vocab'], enabled, queryFn: async () => (await rows<VocabRow>(supabase.from('vocabulary').select('*').order('created_at', { ascending: false }))).map(toVocab) })
   const reviewsQ = useQuery({ queryKey: ['reviews'], enabled, queryFn: async () => (await rows<{ vocab_id: string }>(supabase.from('vocab_reviews').select('vocab_id'))).map((r) => r.vocab_id) })
+  const tracksQ = useQuery({
+    queryKey: ['tracks'],
+    enabled,
+    queryFn: async () => {
+      const list = (await rows<TrackRow>(supabase.from('tracks').select('skill, stage, entered_on'))).map(toTrack)
+      // always all three skills in course order, even if a row is missing
+      return SKILLS.map((skill): Track => list.find((t) => t.skill === skill) ?? { skill, stage: null, enteredOn: null })
+    },
+  })
+  const goalsQ = useQuery({
+    queryKey: ['goals'],
+    enabled,
+    queryFn: async () => (await rows<GoalRow>(supabase.from('goals').select('*').order('sort_order').order('created_at'))).map(toGoal),
+  })
+  const goalsDoneQ = useQuery({
+    queryKey: ['goalsDone'],
+    enabled,
+    queryFn: async () => {
+      const list = await rows<{ goal_id: string; completed_on: string }>(supabase.from('goal_completions').select('goal_id, completed_on'))
+      return Object.fromEntries(list.map((c) => [c.goal_id, c.completed_on])) as Record<string, string>
+    },
+  })
   const resultsQ = useQuery({ queryKey: ['results'], enabled, queryFn: async () => (await rows<ResultRow>(supabase.from('test_results').select('*').order('test_date'))).map(toResult) })
 
   const profile = profileQ.data
   const user: User | null = profile ? { id: profile.id, username: profile.username, displayName: profile.display_name, role: profile.role } : null
-  const core = [weeksQ, tasksQ, completionsQ, vocabQ, reviewsQ, resultsQ]
+  const core = [weeksQ, tasksQ, completionsQ, vocabQ, reviewsQ, resultsQ, tracksQ, goalsQ, goalsDoneQ]
 
   /** Run a write; show the error and refresh the affected caches either way. */
   async function write(keys: string[], fn: () => Promise<void>) {
@@ -120,6 +153,10 @@ function useStoreValue() {
     vocab: vocabQ.data ?? [],
     reviewed: reviewsQ.data ?? [],
     results: resultsQ.data ?? [],
+    tracks: tracksQ.data ?? [],
+    goals: goalsQ.data ?? [],
+    /** goalId -> day the student ticked it */
+    goalsDone: goalsDoneQ.data ?? {},
 
     async login(username: string, pin: string): Promise<string | null> {
       const { error } = await supabase.auth.signInWithPassword({ email: usernameToEmail(username), password: pin })
@@ -159,6 +196,27 @@ function useStoreValue() {
       )
     },
     deleteTask: (id: string) => write(['tasks', 'completions'], () => check(supabase.from('study_tasks').delete().eq('id', id))),
+    setGoalDone(goalId: string, done: boolean) {
+      // optimistic, like setCompletion
+      qc.setQueryData<Record<string, string>>(['goalsDone'], (old = {}) => {
+        const next = { ...old }
+        if (done) next[goalId] = toISO(new Date())
+        else delete next[goalId]
+        return next
+      })
+      return write(['goalsDone'], () =>
+        done
+          ? check(supabase.from('goal_completions').insert({ goal_id: goalId }))
+          : check(supabase.from('goal_completions').delete().eq('goal_id', goalId).eq('student_id', uid!)),
+      )
+    },
+    upsertGoal(g: GoalDraft) {
+      const row = {
+        skill: g.skill, stage: g.stage, title: g.title.trim(), description: g.description, due_date: g.dueDate ?? null, sort_order: g.sortOrder,
+      }
+      return write(['goals'], () => (g.id ? check(supabase.from('goals').update(row).eq('id', g.id)) : check(supabase.from('goals').insert(row))))
+    },
+    deleteGoal: (id: string) => write(['goals', 'goalsDone'], () => check(supabase.from('goals').delete().eq('id', id))),
     addVocab: (v: Omit<VocabItem, 'id'>) =>
       write(['vocab'], () =>
         check(
