@@ -26,7 +26,7 @@ export function Progress() {
   const first = (skill: Skill) => sorted.find((r) => r.skill === skill)
 
   const scoreData = Object.values(
-    sorted.reduce<Record<string, { date: string; Listening?: number; Reading?: number }>>((acc, r) => {
+    sorted.reduce<Record<string, { date: string } & Partial<Record<Skill, number>>>>((acc, r) => {
       acc[r.date] ??= { date: fmtDate(r.date, 'd MMM') }
       acc[r.date][r.skill] = r.band
       return acc

@@ -1,5 +1,6 @@
 export type Role = 'teacher' | 'student'
-export type Skill = 'Listening' | 'Reading'
+export type Skill = 'Listening' | 'Reading' | 'Writing'
+export type StageKey = 'foundation' | 'diagnosis' | 'focus' | 'exam_ready' | 'passage3' | 'templates' | 'practice'
 export type TaskType = 'teacher_session' | 'self_study' | 'homework'
 
 export interface User {
@@ -47,6 +48,23 @@ export interface VocabItem {
   example: string
   collocations: string[]
   weekNumber?: number
+}
+
+/** A skill's position in the course. `stage` and `enteredOn` are null until the track is started. */
+export interface Track {
+  skill: Skill
+  stage: StageKey | null
+  enteredOn: string | null
+}
+
+export interface Goal {
+  id: string
+  skill: Skill
+  stage: StageKey
+  title: string
+  description: string
+  dueDate?: string
+  sortOrder: number
 }
 
 export interface TestResult {

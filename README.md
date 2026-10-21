@@ -86,6 +86,7 @@ To change a PIN later: **Authentication → Users → … → Change password**
 cp .env.example .env.local     # then fill in the two values
 npm install
 npm run dev                    # http://localhost:5173
+npm test                       # unit tests (Vitest); run before every commit
 ```
 
 Get the values from **Project Settings → API Keys**: the Project URL and the

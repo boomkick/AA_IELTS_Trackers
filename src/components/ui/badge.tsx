@@ -40,6 +40,12 @@ export function TaskTypeBadge({ type }: { type: TaskType }) {
   return <Badge tone={typeTone[type]}>{typeLabel[type]}</Badge>
 }
 
+const skillTone: Record<Skill, keyof typeof tones> = {
+  Listening: 'sky',
+  Reading: 'teal',
+  Writing: 'amber',
+}
+
 export function SkillBadge({ skill }: { skill: Skill }) {
-  return <Badge tone={skill === 'Listening' ? 'sky' : 'teal'}>{skill}</Badge>
+  return <Badge tone={skillTone[skill]}>{skill}</Badge>
 }
