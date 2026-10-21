@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { canStart, gateStatus, goalOverdue, nextStage, stagePosition, startsAfterLabel } from '@/lib/stages'
+import { canStart, firstStage, gateStatus, goalOverdue, nextStage, stagePosition, startsAfterLabel } from '@/lib/stages'
 import type { Goal, Skill, StageKey, TestResult, Track } from '@/types'
 
 const track = (skill: Skill, stage: StageKey | null, enteredOn: string | null = stage && '2026-11-01'): Track => ({ skill, stage, enteredOn })
@@ -115,5 +115,13 @@ describe('startsAfterLabel', () => {
     expect(startsAfterLabel('Reading')).toBe('Starts after Listening Foundation')
     expect(startsAfterLabel('Writing')).toBe('Starts after Reading Foundation')
     expect(startsAfterLabel('Listening')).toBeNull()
+  })
+})
+
+describe('firstStage', () => {
+  test('a track starts in its first Stage', () => {
+    expect(firstStage('Listening').name).toBe('Foundation')
+    expect(firstStage('Reading').name).toBe('Foundation')
+    expect(firstStage('Writing').name).toBe('Templates')
   })
 })

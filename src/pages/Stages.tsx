@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import { Check, Flame, Pencil, Plus, Trash2 } from 'lucide-react'
+import { ArrowRight, Check, Flame, Pencil, Plus, Trash2 } from 'lucide-react'
 import { useStore } from '@/lib/store'
-import { TRACKS, gateStatus, stageDef, goalOverdue, stagePosition, startsAfterLabel, type StageDef } from '@/lib/stages'
+import { TRACKS, canStart, firstStage, gateStatus, nextStage, stageDef, goalOverdue, stagePosition, startsAfterLabel, type StageDef } from '@/lib/stages'
 import { cn, fmtDate } from '@/lib/utils'
 import { PageHeader } from '@/components/PageHeader'
 import { GoalForm } from '@/components/GoalForm'
@@ -11,13 +11,13 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Badge, SkillBadge } from '@/components/ui/badge'
-import type { Goal, GoalDraft, Habit, HabitDraft, Track } from '@/types'
+import type { Goal, GoalDraft, Habit, HabitDraft, Skill, Track } from '@/types'
 
 
 export function Stages() {
   const {
     user, tracks, goals, goalsDone, habits, habitTicks, results, today,
-    setGoalDone, upsertGoal, deleteGoal, setHabitTicked, upsertHabit, deleteHabit,
+    setTrackStage, setGoalDone, upsertGoal, deleteGoal, setHabitTicked, upsertHabit, deleteHabit,
   } = useStore()
   const isTeacher = user?.role === 'teacher'
   const [editingGoal, setEditingGoal] = useState<GoalDraft | null>(null)
@@ -30,6 +30,13 @@ export function Stages() {
   const addHabit = (t: Track, s: StageDef) => {
     const existing = habitsOf(t, s)
     setEditingHabit({ skill: t.skill, stage: s.key, title: '', description: '', timesPerWeek: DAILY, sortOrder: Math.max(0, ...existing.map((h) => h.sortOrder)) + 1 })
+  }
+  const start = (skill: Skill) => {
+    const first = firstStage(skill)
+    if (confirm(`Start ${skill}? It enters ${first.name} today.`)) setTrackStage(skill, first.key)
+  }
+  const advance = (skill: Skill, next: StageDef) => {
+    if (confirm(`Advance ${skill} to ${next.name}? The new Stage starts today, and its Gate counts results from today.`)) setTrackStage(skill, next.key)
   }
   const removeHabit = (h: Habit) => {
     if (confirm(`Delete "${h.title}"? The student's ticks on it are removed too.`)) deleteHabit(h.id)
@@ -113,14 +120,21 @@ export function Stages() {
       <div className="grid gap-4 md:grid-cols-3">
         {tracks.map((t) => {
           const current = t.stage && stageDef(t.skill, t.stage)
+          const startable = canStart(t.skill, tracks)
           return (
             <Card key={t.skill} className="p-4">
               <div className="mb-3 flex items-center justify-between gap-2">
                 <SkillBadge skill={t.skill} />
                 {current
                   ? <span className="text-xs text-slate-500">{current.name} since {fmtDate(t.enteredOn!)}</span>
-                  : <span className="text-xs text-slate-500">{startsAfterLabel(t.skill) ?? 'Not started'}</span>}
+                  : <span className="text-xs text-slate-500">{startable ? 'Not started' : (startsAfterLabel(t.skill) ?? 'Not started')}</span>}
               </div>
+
+              {isTeacher && startable && (
+                <Button className="mb-3 w-full" onClick={() => start(t.skill)}>
+                  Start {t.skill} <ArrowRight className="h-4 w-4" />
+                </Button>
+              )}
 
               <ol className="space-y-2">
                 {TRACKS[t.skill].stages.map((s) => {
@@ -129,6 +143,8 @@ export function Stages() {
                   if (position === 'current') {
                     const gate = gateStatus(t, goals, doneIds, results)
                     const stageHabits = habitsOf(t, s)
+                    const nextKey = nextStage(t.skill, s.key)
+                    const next = nextKey && stageDef(t.skill, nextKey)
                     return (
                       <li key={s.key} className="rounded-lg border border-navy-200 bg-navy-50/40 p-3">
                         <div className="flex items-center justify-between gap-2">
@@ -149,6 +165,12 @@ export function Stages() {
                         {isTeacher && (
                           <Button variant="outline" size="sm" className="mt-2" onClick={() => addHabit(t, s)}>
                             <Plus className="h-4 w-4" /> Add Habit
+                          </Button>
+                        )}
+
+                        {isTeacher && next && (
+                          <Button variant={gate.met ? 'primary' : 'outline'} className="mt-4 w-full" onClick={() => advance(t.skill, next)}>
+                            Advance to {next.name} <ArrowRight className="h-4 w-4" />
                           </Button>
                         )}
                       </li>

@@ -222,6 +222,9 @@ function useStoreValue() {
       )
     },
     deleteTask: (id: string) => write(['tasks', 'completions'], () => check(supabase.from('study_tasks').delete().eq('id', id))),
+    /** Start or advance a track: it enters `stage` today, which is when its Gate starts counting results. */
+    setTrackStage: (skill: Skill, stage: StageKey) =>
+      write(['tracks'], () => check(supabase.from('tracks').upsert({ skill, stage, entered_on: today }, { onConflict: 'skill' }))),
     setGoalDone(goalId: string, done: boolean) {
       // optimistic, like setCompletion
       qc.setQueryData<Record<string, string>>(['goalsDone'], (old = {}) => {

@@ -66,6 +66,11 @@ export function stageDef(skill: Skill, key: StageKey): StageDef {
   return TRACKS[skill].stages[indexOf(skill, key)]
 }
 
+/** The Stage a track enters when it starts. */
+export function firstStage(skill: Skill): StageDef {
+  return TRACKS[skill].stages[0]
+}
+
 /** The Stage after `key` on this skill's track, or null at the last Stage. */
 export function nextStage(skill: Skill, key: StageKey): StageKey | null {
   return TRACKS[skill].stages[indexOf(skill, key) + 1]?.key ?? null
