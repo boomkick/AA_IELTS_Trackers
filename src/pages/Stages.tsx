@@ -7,8 +7,8 @@ import { PageHeader } from '@/components/PageHeader'
 import { GoalForm } from '@/components/GoalForm'
 import { HabitForm } from '@/components/HabitForm'
 import { DAILY } from '@/lib/habits'
-import { nextFullTestDue, weeksLeft } from '@/lib/stats'
-import { HabitRow } from '@/components/HabitRow'
+import { nextFullTestDue, weeksLeftLabel } from '@/lib/stats'
+import { HabitItem } from '@/components/HabitItem'
 import { CourseEndForm } from '@/components/CourseEndForm'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -87,7 +87,7 @@ export function Stages() {
         <Button variant="ghost" size="icon" onClick={() => removeHabit(habit)} aria-label={`Delete "${habit.title}"`}><Trash2 className="h-3.5 w-3.5 text-red-500" /></Button>
       </>
     )
-    return <HabitRow key={habit.id} habit={habit} actions={actions} />
+    return <HabitItem key={habit.id} habit={habit} actions={actions} />
   }
 
   function goalList(list: Goal[], editable: boolean) {
@@ -105,7 +105,7 @@ export function Stages() {
         title="Stages"
         subtitle={
           course
-            ? `${weeksLeft(course, today)} weeks left · Course ends ${fmtDate(course.endDate, 'd MMM yyyy')}`
+            ? `${weeksLeftLabel(course, today)} · Course ends ${fmtDate(course.endDate, 'd MMM yyyy')}`
             : 'Each skill moves through its Stages. Finish the Goals of the current Stage to meet its Gate.'
         }
         actions={isTeacher && course && (

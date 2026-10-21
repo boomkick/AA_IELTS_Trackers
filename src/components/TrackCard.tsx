@@ -43,7 +43,12 @@ export function TrackCard({ track }: { track: Track }) {
 }
 
 /** A track that hasn't started: one muted line. */
-export function NotStartedLine({ track, tracks }: { track: Track; tracks: Track[] }) {
-  const label = canStart(track.skill, tracks) ? `${track.skill} is ready to start` : `${track.skill} ${(startsAfterLabel(track.skill) ?? 'not started').replace(/^Starts/, 'starts')}`
-  return <p className="text-sm text-slate-400">{label}</p>
+export function NotStartedLine({ track }: { track: Track }) {
+  const { tracks } = useStore()
+  const label = canStart(track.skill, tracks) ? 'Ready to start' : (startsAfterLabel(track.skill) ?? 'Not started')
+  return (
+    <p className="flex items-center gap-2 text-sm text-slate-400">
+      <SkillBadge skill={track.skill} /> {label}
+    </p>
+  )
 }

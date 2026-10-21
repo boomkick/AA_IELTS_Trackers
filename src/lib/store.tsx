@@ -158,7 +158,7 @@ function useStoreValue() {
       return row ? ({ startDate: row.start_date, endDate: row.end_date } satisfies Course) : null
     },
   })
-  const core = [weeksQ, tasksQ, completionsQ, vocabQ, reviewsQ, resultsQ, tracksQ, goalsQ, goalsDoneQ, habitsQ, habitTicksQ, courseQ]
+  const core = [weeksQ, tasksQ, completionsQ, vocabQ, reviewsQ, resultsQ, tracksQ, goalsQ, goalsDoneQ, habitsQ, habitTicksQ]
 
   /** Run a write; show the error and refresh the affected caches either way. */
   async function write(keys: string[], fn: () => Promise<void>) {
@@ -196,7 +196,7 @@ function useStoreValue() {
     habits: habitsQ.data ?? [],
     /** habitId -> days the student ticked it */
     habitTicks: habitTicksQ.data ?? {},
-    /** null until migration 009 has seeded it */
+    /** null until migration 009 has run; not in `core`, so the app still loads without it */
     course: courseQ.data ?? null,
 
     async login(username: string, pin: string): Promise<string | null> {
@@ -237,9 +237,9 @@ function useStoreValue() {
       )
     },
     deleteTask: (id: string) => write(['tasks', 'completions'], () => check(supabase.from('study_tasks').delete().eq('id', id))),
-    /** Start or advance a track: it enters `stage` today, which is when its Gate starts counting results. */
     /** Move the Course end date, e.g. to the exam date once it's booked. */
     setCourseEnd: (endDate: string) => write(['course'], () => check(supabase.from('course').update({ end_date: endDate }).eq('id', 1))),
+    /** Start or advance a track: it enters `stage` today, which is when its Gate starts counting results. */
     setTrackStage: (skill: Skill, stage: StageKey) =>
       write(['tracks'], () => check(supabase.from('tracks').upsert({ skill, stage, entered_on: today }, { onConflict: 'skill' }))),
     setGoalDone(goalId: string, done: boolean) {

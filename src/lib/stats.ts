@@ -51,6 +51,12 @@ export function weeksLeft(course: Course, today: string): number {
   return Math.max(0, Math.ceil(differenceInCalendarDays(parseISO(course.endDate), parseISO(today)) / 7))
 }
 
+/** e.g. "26 weeks left", "1 week left". */
+export function weeksLeftLabel(course: Course, today: string): string {
+  const n = weeksLeft(course, today)
+  return `${n} ${n === 1 ? 'week' : 'weeks'} left`
+}
+
 /** Days between Full tests once a skill reaches Focus. */
 const FULL_TEST_EVERY_DAYS = 56
 

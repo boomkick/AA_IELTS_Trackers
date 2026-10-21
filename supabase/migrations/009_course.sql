@@ -30,6 +30,10 @@ create policy "course: teacher update" on public.course
 
 revoke all on public.course from anon;
 
+-- The start date is fixed: only end_date can be updated, even by the teacher.
+revoke update on public.course from authenticated;
+grant update (end_date) on public.course to authenticated;
+
 -- ---------------------------------------------------------------------------
 -- Seed: about six months from the first class.
 -- ---------------------------------------------------------------------------

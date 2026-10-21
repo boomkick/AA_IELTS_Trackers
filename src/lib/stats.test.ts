@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { nextFullTestDue, weakestArea, weeksLeft } from '@/lib/stats'
+import { nextFullTestDue, weakestArea, weeksLeft, weeksLeftLabel } from '@/lib/stats'
 import type { SectionScores, TestResult } from '@/types'
 
 describe('weakestArea', () => {
@@ -70,5 +70,15 @@ describe('nextFullTestDue', () => {
     expect(nextFullTestDue({ skill: 'Reading', stage: null, enteredOn: null }, results)).toBeNull()
     expect(nextFullTestDue({ skill: 'Writing', stage: 'practice', enteredOn: '2026-12-01' }, [{ id: 'w', date: '2026-12-05', skill: 'Writing', band: 6, writingTask: 2 }])).toBeNull()
     expect(nextFullTestDue({ skill: 'Reading', stage: 'focus', enteredOn: '2026-12-02' }, [])).toBeNull()
+  })
+})
+
+describe('weeksLeftLabel', () => {
+  const course = { startDate: '2026-10-19', endDate: '2027-04-19' }
+
+  test('says "week" for one and "weeks" otherwise', () => {
+    expect(weeksLeftLabel(course, '2026-10-21')).toBe('26 weeks left')
+    expect(weeksLeftLabel(course, '2027-04-12')).toBe('1 week left')
+    expect(weeksLeftLabel(course, '2027-05-01')).toBe('0 weeks left')
   })
 })

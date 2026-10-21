@@ -6,7 +6,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import type { Habit } from '@/types'
 
 /** One Habit: today's tick (student only), its rhythm, this week's count and, for daily Habits, the streak. */
-export function HabitRow({ habit, actions }: { habit: Habit; actions?: ReactNode }) {
+export function HabitItem({ habit, actions }: { habit: Habit; actions?: ReactNode }) {
   const { user, habitTicks, today, setHabitTicked } = useStore()
   const ticks = habitTicks[habit.id] ?? []
   return (

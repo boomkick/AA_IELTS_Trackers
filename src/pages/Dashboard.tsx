@@ -1,9 +1,9 @@
 import { useStore } from '@/lib/store'
 import { stageDef } from '@/lib/stages'
-import { weeksLeft } from '@/lib/stats'
+import { weeksLeftLabel } from '@/lib/stats'
 import { fmtDate } from '@/lib/utils'
 import { PageHeader } from '@/components/PageHeader'
-import { HabitRow } from '@/components/HabitRow'
+import { HabitItem } from '@/components/HabitItem'
 import { NotStartedLine, TrackCard } from '@/components/TrackCard'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { SkillBadge } from '@/components/ui/badge'
@@ -23,7 +23,7 @@ export function Dashboard() {
     <>
       <PageHeader
         title={`Hello, ${user?.displayName}`}
-        subtitle={`${fmtDate(today, 'EEEE, d MMMM')}${course ? ` · ${weeksLeft(course, today)} weeks left` : ''}`}
+        subtitle={`${fmtDate(today, 'EEEE, d MMMM')}${course ? ` · ${weeksLeftLabel(course, today)}` : ''}`}
       />
 
       <Card>
@@ -38,7 +38,7 @@ export function Dashboard() {
                   <span className="text-xs text-slate-500">{stageDef(track.skill, track.stage!).name}</span>
                 </div>
                 <ul className="divide-y divide-slate-100">
-                  {list.map((h) => <HabitRow key={h.id} habit={h} />)}
+                  {list.map((h) => <HabitItem key={h.id} habit={h} />)}
                 </ul>
               </div>
             ))}
@@ -52,7 +52,7 @@ export function Dashboard() {
       </div>
       {notStarted.length > 0 && (
         <div className="mt-3 space-y-1">
-          {notStarted.map((t) => <NotStartedLine key={t.skill} track={t} tracks={tracks} />)}
+          {notStarted.map((t) => <NotStartedLine key={t.skill} track={t} />)}
         </div>
       )}
     </>
