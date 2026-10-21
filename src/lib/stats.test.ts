@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { weakestArea } from '@/lib/stats'
+import { nextFullTestDue, weakestArea, weeksLeft } from '@/lib/stats'
 import type { SectionScores, TestResult } from '@/types'
 
 describe('weakestArea', () => {
@@ -34,5 +34,41 @@ describe('weakestArea edge cases', () => {
   test('Reading ties go to the Question type listed first, whatever order they were saved in', () => {
     const wrongByType = { 'Short-answer questions': 3, 'Matching headings': 3 }
     expect(weakestArea({ id: 'x', date: '2026-11-20', skill: 'Reading', band: 6, wrongByType })).toBe('Matching headings')
+  })
+})
+
+describe('weeksLeft', () => {
+  const course = { startDate: '2026-10-19', endDate: '2027-04-19' }
+
+  test('remaining days divided by 7, rounded up', () => {
+    expect(weeksLeft(course, '2026-10-21')).toBe(26)
+    expect(weeksLeft(course, '2027-04-12')).toBe(1)
+    expect(weeksLeft(course, '2027-04-11')).toBe(2)
+  })
+
+  test('never below 0 once the end date has passed', () => {
+    expect(weeksLeft(course, '2027-04-19')).toBe(0)
+    expect(weeksLeft(course, '2027-06-01')).toBe(0)
+  })
+})
+
+describe('nextFullTestDue', () => {
+  const results: TestResult[] = [
+    { id: '1', date: '2026-10-30', skill: 'Listening', band: 5 },
+    { id: '2', date: '2026-11-20', skill: 'Listening', band: 5.5 },
+    { id: '3', date: '2026-12-01', skill: 'Reading', band: 6 },
+  ]
+
+  test("56 days after the skill's latest Full test, from Focus on", () => {
+    expect(nextFullTestDue({ skill: 'Listening', stage: 'focus', enteredOn: '2026-11-25' }, results)).toBe('2027-01-15')
+    expect(nextFullTestDue({ skill: 'Listening', stage: 'exam_ready', enteredOn: '2027-01-10' }, results)).toBe('2027-01-15')
+    expect(nextFullTestDue({ skill: 'Reading', stage: 'passage3', enteredOn: '2027-01-10' }, results)).toBe('2027-01-26')
+  })
+
+  test('not shown before Focus, for a track not started, for Writing, or with no Full test yet', () => {
+    expect(nextFullTestDue({ skill: 'Listening', stage: 'diagnosis', enteredOn: '2026-11-10' }, results)).toBeNull()
+    expect(nextFullTestDue({ skill: 'Reading', stage: null, enteredOn: null }, results)).toBeNull()
+    expect(nextFullTestDue({ skill: 'Writing', stage: 'practice', enteredOn: '2026-12-01' }, [{ id: 'w', date: '2026-12-05', skill: 'Writing', band: 6, writingTask: 2 }])).toBeNull()
+    expect(nextFullTestDue({ skill: 'Reading', stage: 'focus', enteredOn: '2026-12-02' }, [])).toBeNull()
   })
 })

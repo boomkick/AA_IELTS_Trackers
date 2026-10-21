@@ -106,3 +106,9 @@ export interface TestResult {
 /** Correct answers in Listening Sections 1–4 */
 export type SectionScores = [number, number, number, number]
 export type WritingTask = 1 | 2
+
+/** The coaching programme's dates. The end date moves to the exam date once it's booked. */
+export interface Course {
+  startDate: string
+  endDate: string
+}

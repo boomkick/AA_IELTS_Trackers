@@ -25,7 +25,7 @@ Student browser ─┘
   | Data | Teacher | Student |
   |---|---|---|
   | Study weeks, tasks, homework, vocabulary | create / edit / delete | read |
-  | Tracks, Goals and Habits | create / edit / delete | read |
+  | Course dates, tracks, Goals and Habits | create / edit / delete (Course: end date only) | read |
   | Goal and Habit ticks | read | own rows only (Habit ticks: today only) |
   | Task completions, homework scores & notes | read | own rows only |
   | Vocabulary "reviewed" marks | read | own rows only |
@@ -45,6 +45,7 @@ Student browser ─┘
 | `vocabulary` | Word, IPA, English definition, Vietnamese meaning, example, collocations. |
 | `vocab_reviews` | Words the student has marked as reviewed. |
 | `test_results` | Full test results: band (0–9, steps of 0.5); Listening Section scores, Reading correct and wrong answers per Question type, or the Writing Task. |
+| `course` | One row: the Course start and end date. The teacher moves the end date to the exam date. |
 | `tracks` | Each skill's current Stage and the day it entered it (null until started). |
 | `goals` | The Goals of each Stage, with an optional due date. Edited by the teacher. |
 | `goal_completions` | Student ticks a Goal. Deleted with the Goal. |
@@ -61,6 +62,7 @@ SQL files, run in order:
 6. `006_tracks_goals.sql` – Skill tracks, Stage Goals and Goal ticks, with the starting Goals
 7. `007_habits.sql` – Stage Habits and Habit ticks, with the starting Habits
 8. `008_result_details.sql` – Writing results, Listening Section scores, Reading wrong answers per Question type; the teacher can add results
+9. `009_course.sql` – Course start and end date (2026-10-19 to 2027-04-19 at first)
 
 ## Setup
 

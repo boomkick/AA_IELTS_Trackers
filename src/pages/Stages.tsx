@@ -1,27 +1,30 @@
 import { useState } from 'react'
-import { ArrowRight, Check, Flame, Pencil, Plus, Trash2 } from 'lucide-react'
+import { ArrowRight, CalendarDays, Check, Pencil, Plus, Trash2 } from 'lucide-react'
 import { useStore } from '@/lib/store'
 import { TRACKS, canStart, firstStage, gateStatus, nextStage, stageDef, goalOverdue, stagePosition, startsAfterLabel, type StageDef } from '@/lib/stages'
 import { cn, fmtDate } from '@/lib/utils'
 import { PageHeader } from '@/components/PageHeader'
 import { GoalForm } from '@/components/GoalForm'
 import { HabitForm } from '@/components/HabitForm'
-import { DAILY, isDaily, rhythmLabel, streak, weekCount } from '@/lib/habits'
+import { DAILY } from '@/lib/habits'
+import { nextFullTestDue, weeksLeft } from '@/lib/stats'
+import { HabitRow } from '@/components/HabitRow'
+import { CourseEndForm } from '@/components/CourseEndForm'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Badge, SkillBadge } from '@/components/ui/badge'
 import type { Goal, GoalDraft, Habit, HabitDraft, Skill, Track } from '@/types'
 
-
 export function Stages() {
   const {
-    user, tracks, goals, goalsDone, habits, habitTicks, results, today,
-    setTrackStage, setGoalDone, upsertGoal, deleteGoal, setHabitTicked, upsertHabit, deleteHabit,
+    user, course, tracks, goals, goalsDone, habits, results, today,
+    setCourseEnd, setTrackStage, setGoalDone, upsertGoal, deleteGoal, upsertHabit, deleteHabit,
   } = useStore()
   const isTeacher = user?.role === 'teacher'
   const [editingGoal, setEditingGoal] = useState<GoalDraft | null>(null)
   const [editingHabit, setEditingHabit] = useState<HabitDraft | null>(null)
+  const [editingEnd, setEditingEnd] = useState(false)
 
   const doneIds = new Set(Object.keys(goalsDone))
   const goalsOf = (t: Track, s: StageDef) => goals.filter((g) => g.skill === t.skill && g.stage === s.key)
@@ -78,30 +81,13 @@ export function Stages() {
   }
 
   function habitRow(habit: Habit) {
-    const ticks = habitTicks[habit.id] ?? []
-    const tickedToday = ticks.includes(today)
-    const daily = isDaily(habit.timesPerWeek)
-    return (
-      <li key={habit.id} className="flex gap-2.5 py-2">
-        <div className="pt-0.5">
-          <Checkbox checked={tickedToday} disabled={isTeacher} onChange={(d) => setHabitTicked(habit.id, d)} label={`Mark "${habit.title}" as done today`} />
-        </div>
-        <div className="min-w-0 flex-1">
-          <p className="text-sm font-medium text-slate-900">{habit.title}</p>
-          {habit.description && <p className="mt-0.5 text-xs text-slate-500">{habit.description}</p>}
-          <p className="mt-0.5 text-xs text-slate-500">
-            {rhythmLabel(habit.timesPerWeek)} · {weekCount(ticks, today)} this week
-            {daily && <> · <Flame className="inline h-3 w-3 text-orange-500" /> {streak(ticks, today)} day streak</>}
-          </p>
-        </div>
-        {isTeacher && (
-          <div className="flex shrink-0 gap-0.5">
-            <Button variant="ghost" size="icon" onClick={() => setEditingHabit(habit)} aria-label={`Edit "${habit.title}"`}><Pencil className="h-3.5 w-3.5" /></Button>
-            <Button variant="ghost" size="icon" onClick={() => removeHabit(habit)} aria-label={`Delete "${habit.title}"`}><Trash2 className="h-3.5 w-3.5 text-red-500" /></Button>
-          </div>
-        )}
-      </li>
+    const actions = isTeacher && (
+      <>
+        <Button variant="ghost" size="icon" onClick={() => setEditingHabit(habit)} aria-label={`Edit "${habit.title}"`}><Pencil className="h-3.5 w-3.5" /></Button>
+        <Button variant="ghost" size="icon" onClick={() => removeHabit(habit)} aria-label={`Delete "${habit.title}"`}><Trash2 className="h-3.5 w-3.5 text-red-500" /></Button>
+      </>
     )
+    return <HabitRow key={habit.id} habit={habit} actions={actions} />
   }
 
   function goalList(list: Goal[], editable: boolean) {
@@ -115,7 +101,17 @@ export function Stages() {
 
   return (
     <>
-      <PageHeader title="Stages" subtitle="Each skill moves through its Stages. Finish the Goals of the current Stage to meet its Gate." />
+      <PageHeader
+        title="Stages"
+        subtitle={
+          course
+            ? `${weeksLeft(course, today)} weeks left · Course ends ${fmtDate(course.endDate, 'd MMM yyyy')}`
+            : 'Each skill moves through its Stages. Finish the Goals of the current Stage to meet its Gate.'
+        }
+        actions={isTeacher && course && (
+          <Button variant="outline" onClick={() => setEditingEnd(true)}><CalendarDays className="h-4 w-4" /> Course end date</Button>
+        )}
+      />
 
       <div className="grid gap-4 md:grid-cols-3">
         {tracks.map((t) => {
@@ -145,12 +141,14 @@ export function Stages() {
                     const stageHabits = habitsOf(t, s)
                     const nextKey = nextStage(t.skill, s.key)
                     const next = nextKey && stageDef(t.skill, nextKey)
+                    const nextTest = nextFullTestDue(t, results)
                     return (
                       <li key={s.key} className="rounded-lg border border-navy-200 bg-navy-50/40 p-3">
                         <div className="flex items-center justify-between gap-2">
                           <h2 className="font-semibold text-slate-900">{s.name}</h2>
                           <Badge tone={gate.met ? 'green' : 'slate'}>{gate.label}</Badge>
                         </div>
+                        {nextTest && <p className="mt-1 text-xs text-slate-500">Next Full test due {fmtDate(nextTest)}</p>}
                         {goalList(list, true)}
                         {isTeacher && (
                           <Button variant="outline" size="sm" className="mt-2" onClick={() => addGoal(t, s)}>
@@ -197,6 +195,7 @@ export function Stages() {
 
       {editingGoal && <GoalForm open onClose={() => setEditingGoal(null)} onSave={upsertGoal} initial={editingGoal} />}
       {editingHabit && <HabitForm open onClose={() => setEditingHabit(null)} onSave={upsertHabit} initial={editingHabit} />}
+      {editingEnd && course && <CourseEndForm course={course} onClose={() => setEditingEnd(false)} onSave={setCourseEnd} />}
     </>
   )
 }

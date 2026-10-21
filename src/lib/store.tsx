@@ -5,7 +5,7 @@ import { QueryClient, QueryClientProvider, useQuery, useQueryClient } from '@tan
 import type { Session } from '@supabase/supabase-js'
 import { supabase, usernameToEmail } from '@/lib/supabase'
 import { toISO } from '@/lib/utils'
-import type { Completion, Goal, GoalDraft, Habit, HabitDraft, Role, SectionScores, Skill, StageKey, StudyTask, StudyWeek, TaskType, TestResult, Track, User, VocabItem, WritingTask } from '@/types'
+import type { Completion, Course, Goal, GoalDraft, Habit, HabitDraft, Role, SectionScores, Skill, StageKey, StudyTask, StudyWeek, TaskType, TestResult, Track, User, VocabItem, WritingTask } from '@/types'
 import { TRACKS } from '@/lib/stages'
 
 // ---------------------------------------------------------------------------
@@ -150,7 +150,15 @@ function useStoreValue() {
 
   const profile = profileQ.data
   const user: User | null = profile ? { id: profile.id, username: profile.username, displayName: profile.display_name, role: profile.role } : null
-  const core = [weeksQ, tasksQ, completionsQ, vocabQ, reviewsQ, resultsQ, tracksQ, goalsQ, goalsDoneQ, habitsQ, habitTicksQ]
+  const courseQ = useQuery({
+    queryKey: ['course'],
+    enabled,
+    queryFn: async () => {
+      const [row] = await rows<{ start_date: string; end_date: string }>(supabase.from('course').select('start_date, end_date'))
+      return row ? ({ startDate: row.start_date, endDate: row.end_date } satisfies Course) : null
+    },
+  })
+  const core = [weeksQ, tasksQ, completionsQ, vocabQ, reviewsQ, resultsQ, tracksQ, goalsQ, goalsDoneQ, habitsQ, habitTicksQ, courseQ]
 
   /** Run a write; show the error and refresh the affected caches either way. */
   async function write(keys: string[], fn: () => Promise<void>) {
@@ -188,6 +196,8 @@ function useStoreValue() {
     habits: habitsQ.data ?? [],
     /** habitId -> days the student ticked it */
     habitTicks: habitTicksQ.data ?? {},
+    /** null until migration 009 has seeded it */
+    course: courseQ.data ?? null,
 
     async login(username: string, pin: string): Promise<string | null> {
       const { error } = await supabase.auth.signInWithPassword({ email: usernameToEmail(username), password: pin })
@@ -228,6 +238,8 @@ function useStoreValue() {
     },
     deleteTask: (id: string) => write(['tasks', 'completions'], () => check(supabase.from('study_tasks').delete().eq('id', id))),
     /** Start or advance a track: it enters `stage` today, which is when its Gate starts counting results. */
+    /** Move the Course end date, e.g. to the exam date once it's booked. */
+    setCourseEnd: (endDate: string) => write(['course'], () => check(supabase.from('course').update({ end_date: endDate }).eq('id', 1))),
     setTrackStage: (skill: Skill, stage: StageKey) =>
       write(['tracks'], () => check(supabase.from('tracks').upsert({ skill, stage, entered_on: today }, { onConflict: 'skill' }))),
     setGoalDone(goalId: string, done: boolean) {
