@@ -1,21 +1,20 @@
 import { useStore } from '@/lib/store'
-import { canStart, gateStatus, goalOverdue, stageDef, startsAfterLabel } from '@/lib/stages'
+import { gateStatus, itemsOfStage, notStartedLabel, stageDef } from '@/lib/stages'
 import { nextFullTestDue } from '@/lib/stats'
-import { cn, fmtDate } from '@/lib/utils'
+import { fmtDate } from '@/lib/utils'
+import { GoalDue } from '@/components/GoalDue'
 import { Card } from '@/components/ui/card'
 import { Badge, SkillBadge } from '@/components/ui/badge'
 import type { Track } from '@/types'
 
 /** A started track: its current Stage, the next Goal not yet done, the Gate status and the next Full test. */
 export function TrackCard({ track }: { track: Track }) {
-  const { goals, goalsDone, results, today } = useStore()
+  const { goals, doneGoalIds, results, today } = useStore()
   if (track.stage === null) return null
 
-  const doneIds = new Set(Object.keys(goalsDone))
-  const nextGoal = goals.find((g) => g.skill === track.skill && g.stage === track.stage && !doneIds.has(g.id))
-  const gate = gateStatus(track, goals, doneIds, results)
+  const nextGoal = itemsOfStage(goals, track.skill, track.stage).find((g) => !doneGoalIds.has(g.id))
+  const gate = gateStatus(track, goals, doneGoalIds, results)
   const nextTest = nextFullTestDue(track, results)
-  const overdue = nextGoal ? goalOverdue(nextGoal, false, today) : false
 
   return (
     <Card className="p-4">
@@ -28,11 +27,7 @@ export function TrackCard({ track }: { track: Track }) {
         <div className="mt-2">
           <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Next Goal</p>
           <p className="text-sm text-slate-800">{nextGoal.title}</p>
-          {nextGoal.dueDate && (
-            <p className={cn('text-xs font-medium', overdue ? 'text-red-600' : 'text-slate-500')}>
-              Due {fmtDate(nextGoal.dueDate)}{overdue && ' · overdue'}
-            </p>
-          )}
+          <GoalDue goal={nextGoal} done={false} today={today} />
         </div>
       ) : (
         <p className="mt-2 text-sm text-slate-500">No open Goals in this Stage.</p>
@@ -45,10 +40,9 @@ export function TrackCard({ track }: { track: Track }) {
 /** A track that hasn't started: one muted line. */
 export function NotStartedLine({ track }: { track: Track }) {
   const { tracks } = useStore()
-  const label = canStart(track.skill, tracks) ? 'Ready to start' : (startsAfterLabel(track.skill) ?? 'Not started')
   return (
     <p className="flex items-center gap-2 text-sm text-slate-400">
-      <SkillBadge skill={track.skill} /> {label}
+      <SkillBadge skill={track.skill} /> {notStartedLabel(track.skill, tracks)}
     </p>
   )
 }

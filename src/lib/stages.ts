@@ -15,6 +15,8 @@ interface TrackDef {
   stages: StageDef[]
   /** The track may start once `skill` has moved past `stage`. */
   startsAfter?: { skill: Skill; stage: StageKey }
+  /** From this Stage on, a Full test is due every two months. Writing has none. */
+  fullTestsFrom?: StageKey
 }
 
 export const TRACKS: Record<Skill, TrackDef> = {
@@ -25,6 +27,7 @@ export const TRACKS: Record<Skill, TrackDef> = {
       { key: 'focus', name: 'Focus', gate: { kind: 'band', min: 7 } },
       { key: 'exam_ready', name: 'Exam-ready', gate: { kind: 'none' } },
     ],
+    fullTestsFrom: 'focus',
   },
   Reading: {
     stages: [
@@ -34,6 +37,7 @@ export const TRACKS: Record<Skill, TrackDef> = {
       { key: 'passage3', name: 'Passage 3', gate: { kind: 'none' } },
     ],
     startsAfter: { skill: 'Listening', stage: 'foundation' },
+    fullTestsFrom: 'focus',
   },
   Writing: {
     stages: [
@@ -64,6 +68,16 @@ const indexOf = (skill: Skill, key: StageKey) => TRACKS[skill].stages.findIndex(
 
 export function stageDef(skill: Skill, key: StageKey): StageDef {
   return TRACKS[skill].stages[indexOf(skill, key)]
+}
+
+/** The Goals or Habits of one skill's Stage. */
+export function itemsOfStage<T extends { skill: Skill; stage: StageKey }>(items: T[], skill: Skill, stage: StageKey): T[] {
+  return items.filter((i) => i.skill === skill && i.stage === stage)
+}
+
+/** Sort order for a new Goal or Habit: one after the highest in its Stage. */
+export function nextSortOrder(items: { sortOrder: number }[]): number {
+  return Math.max(0, ...items.map((i) => i.sortOrder)) + 1
 }
 
 /** The Stage a track enters when it starts. */
@@ -104,6 +118,11 @@ export function canStart(skill: Skill, tracks: Track[]): boolean {
   return current !== null && indexOf(after.skill, current) > indexOf(after.skill, after.stage)
 }
 
+/** The one status line for a track that hasn't started. */
+export function notStartedLabel(skill: Skill, tracks: Track[]): string {
+  return canStart(skill, tracks) ? 'Ready to start' : (startsAfterLabel(skill) ?? 'Not started')
+}
+
 /** Whether the track's current Stage Gate is met, with a short status line for the UI. */
 export function gateStatus(track: Track, goals: Goal[], doneGoalIds: Set<string>, results: TestResult[]): { met: boolean; label: string } {
   if (track.stage === null || track.enteredOn === null) return { met: false, label: 'Not started' }
@@ -111,7 +130,7 @@ export function gateStatus(track: Track, goals: Goal[], doneGoalIds: Set<string>
   const gate = stageDef(track.skill, track.stage).gate
   if (gate.kind === 'none') return { met: false, label: 'Last Stage' }
 
-  const stageGoals = goals.filter((g) => g.skill === track.skill && g.stage === track.stage)
+  const stageGoals = itemsOfStage(goals, track.skill, track.stage)
   const done = stageGoals.filter((g) => doneGoalIds.has(g.id)).length
   const goalsStatus = { met: done === stageGoals.length, label: `${done} of ${stageGoals.length} Goals done` }
   const fullTests = results.filter((r) => r.skill === track.skill && r.date >= enteredOn)

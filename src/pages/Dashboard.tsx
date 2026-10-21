@@ -1,5 +1,5 @@
 import { useStore } from '@/lib/store'
-import { stageDef } from '@/lib/stages'
+import { itemsOfStage, stageDef } from '@/lib/stages'
 import { weeksLeftLabel } from '@/lib/stats'
 import { fmtDate } from '@/lib/utils'
 import { PageHeader } from '@/components/PageHeader'
@@ -16,7 +16,7 @@ export function Dashboard() {
   const notStarted = tracks.filter((t) => t.stage === null)
   // every Habit of every started track's current Stage, grouped by track
   const habitGroups = started
-    .map((t) => ({ track: t, habits: habits.filter((h) => h.skill === t.skill && h.stage === t.stage) }))
+    .map((t) => ({ track: t, habits: itemsOfStage(habits, t.skill, t.stage!) }))
     .filter((g) => g.habits.length > 0)
 
   return (

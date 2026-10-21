@@ -1,9 +1,9 @@
 import { useState } from 'react'
 import { CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
-import { BookOpenCheck, Headphones, PenLine, Plus, Search } from 'lucide-react'
+import { BookOpenCheck, Headphones, PenLine, Plus, Search, type LucideIcon } from 'lucide-react'
 import { useStore } from '@/lib/store'
 import { FULL_TEST_QUESTIONS, SECTION_QUESTIONS, weakestArea } from '@/lib/stats'
-import { QUESTION_TYPES } from '@/lib/stages'
+import { QUESTION_TYPES, TRACKS } from '@/lib/stages'
 import { fmtDate } from '@/lib/utils'
 import { PageHeader } from '@/components/PageHeader'
 import { StatCard } from '@/components/StatCard'
@@ -17,6 +17,10 @@ import type { SectionScores, Skill, TestResult, WritingTask } from '@/types'
 const LISTENING = '#0284c7'
 const READING = '#0d9488'
 const WRITING = '#d97706'
+
+// course order (Listening, Reading, Writing)
+const SKILLS = Object.keys(TRACKS) as Skill[]
+const SKILL_ICONS: Record<Skill, LucideIcon> = { Listening: Headphones, Reading: BookOpenCheck, Writing: PenLine }
 
 export function Progress() {
   const { results, today, addResult } = useStore()
@@ -34,11 +38,10 @@ export function Progress() {
     }, {}),
   )
 
-  const L = latest('Listening')
-  const R = latest('Reading')
-  const W = latest('Writing')
-  const weakL = L && weakestArea(L)
-  const weakR = R && weakestArea(R)
+  const latestListening = latest('Listening')
+  const latestReading = latest('Reading')
+  const weakListening = latestListening && weakestArea(latestListening)
+  const weakReading = latestReading && weakestArea(latestReading)
 
   const delta = (skill: Skill) => {
     const a = first(skill)
@@ -57,12 +60,13 @@ export function Progress() {
       />
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatCard label="Listening" value={L ? L.band.toFixed(1) : '—'} hint={delta('Listening')} icon={Headphones} />
-        <StatCard label="Reading" value={R ? R.band.toFixed(1) : '—'} hint={delta('Reading')} icon={BookOpenCheck} />
-        <StatCard label="Writing" value={W ? W.band.toFixed(1) : '—'} hint={delta('Writing')} icon={PenLine} />
+        {SKILLS.map((skill) => {
+          const result = latest(skill)
+          return <StatCard key={skill} label={skill} value={result ? result.band.toFixed(1) : '—'} hint={delta(skill)} icon={SKILL_ICONS[skill]} />
+        })}
         <StatCard
           label="Weakest area"
-          value={weakL || weakR ? <span className="block space-y-0.5 text-sm">{weakL && <span className="block">L: {weakL}</span>}{weakR && <span className="block">R: {weakR}</span>}</span> : '—'}
+          value={weakListening || weakReading ? <span className="block space-y-0.5 text-sm">{weakListening && <span className="block">L: {weakListening}</span>}{weakReading && <span className="block">R: {weakReading}</span>}</span> : '—'}
           hint="from the latest Full tests"
           icon={Search}
         />
@@ -126,6 +130,12 @@ export function Progress() {
 
 const SECTIONS = [0, 1, 2, 3] as const
 
+/** Wrong answers per Question type, without blanks or zeros; nothing at all when none were wrong. */
+function wrongAnswers(entries: Record<string, string>): TestResult['wrongByType'] {
+  const wrong = Object.entries(entries).filter(([, v]) => Number(v) > 0).map(([k, v]) => [k, Number(v)])
+  return wrong.length > 0 ? Object.fromEntries(wrong) : undefined
+}
+
 /** A whole number in [min, max]; blank is not one. */
 const inRange = (v: string, min: number, max: number) => v.trim() !== '' && Number.isInteger(Number(v)) && Number(v) >= min && Number(v) <= max
 
@@ -150,7 +160,7 @@ function ScoreForm({ onClose, onSave, today }: { onClose: () => void; onSave: (r
       // blanks and zeros are not saved
       fields: () => ({
         correct: Number(f.correct), total: FULL_TEST_QUESTIONS,
-        wrongByType: Object.fromEntries(Object.entries(wrong).filter(([, v]) => Number(v) > 0).map(([k, v]) => [k, Number(v)])),
+        wrongByType: wrongAnswers(wrong),
       }),
     },
     Writing: { ok: true, fields: () => ({ writingTask: f.writingTask }) },
@@ -180,9 +190,7 @@ function ScoreForm({ onClose, onSave, today }: { onClose: () => void; onSave: (r
         <div>
           <Label htmlFor="score-skill">Skill</Label>
           <Select id="score-skill" value={f.skill} onChange={(e) => setF({ ...f, skill: e.target.value as Skill })}>
-            <option>Listening</option>
-            <option>Reading</option>
-            <option>Writing</option>
+            {SKILLS.map((skill) => <option key={skill}>{skill}</option>)}
           </Select>
         </div>
         <div><Label htmlFor="score-band">Band</Label><Input id="score-band" type="number" min={0} max={9} step={0.5} value={f.band} onChange={(e) => setF({ ...f, band: e.target.value })} /></div>

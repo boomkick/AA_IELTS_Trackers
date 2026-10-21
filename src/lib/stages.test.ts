@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { canStart, firstStage, gateStatus, goalOverdue, nextStage, stagePosition, startsAfterLabel } from '@/lib/stages'
+import { canStart, firstStage, gateStatus, itemsOfStage, nextSortOrder, notStartedLabel, goalOverdue, nextStage, stagePosition, startsAfterLabel } from '@/lib/stages'
 import type { Goal, Skill, StageKey, TestResult, Track } from '@/types'
 
 const track = (skill: Skill, stage: StageKey | null, enteredOn: string | null = stage && '2026-11-01'): Track => ({ skill, stage, enteredOn })
@@ -123,5 +123,26 @@ describe('firstStage', () => {
     expect(firstStage('Listening').name).toBe('Foundation')
     expect(firstStage('Reading').name).toBe('Foundation')
     expect(firstStage('Writing').name).toBe('Templates')
+  })
+})
+
+describe('itemsOfStage', () => {
+  test("keeps only the Goals or Habits of one skill's Stage", () => {
+    const items = [goal('a', 'foundation'), goal('b', 'diagnosis'), goal('c', 'foundation', 'Reading'), goal('d', 'foundation')]
+    expect(itemsOfStage(items, 'Listening', 'foundation').map((g) => g.id)).toEqual(['a', 'd'])
+  })
+})
+
+describe('nextSortOrder', () => {
+  test('one after the highest, or 1 for an empty Stage', () => {
+    expect(nextSortOrder([{ sortOrder: 3 }, { sortOrder: 7 }])).toBe(8)
+    expect(nextSortOrder([])).toBe(1)
+  })
+})
+
+describe('notStartedLabel', () => {
+  test('ready once the start rule allows it, otherwise what it waits for', () => {
+    expect(notStartedLabel('Reading', [track('Listening', 'diagnosis'), track('Reading', null)])).toBe('Ready to start')
+    expect(notStartedLabel('Reading', [track('Listening', 'foundation'), track('Reading', null)])).toBe('Starts after Listening Foundation')
   })
 })

@@ -164,6 +164,8 @@ function useStoreValue() {
     goals: goalsQ.data ?? [],
     /** goalId -> day the student ticked it */
     goalsDone: goalsDoneQ.data ?? {},
+    /** the same ticks as a set, for Gate checks */
+    doneGoalIds: new Set(Object.keys(goalsDoneQ.data ?? {})),
     habits: habitsQ.data ?? [],
     /** habitId -> days the student ticked it */
     habitTicks: habitTicksQ.data ?? {},

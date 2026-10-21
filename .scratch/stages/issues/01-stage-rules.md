@@ -16,5 +16,5 @@ Background: `GLOSSARY.md`, `docs/adr/0001-stages-replace-dated-weekly-plan.md`, 
 - [ ] The Diagnosis Gate needs every Goal done **and** a Full test of that skill recorded on or after the day the track entered Diagnosis ("Full test needed" otherwise).
 - [ ] The Focus Gate is met by one Full test of 7.0 or above recorded on or after the day the track entered Focus. The status reads like "Best Full test 6.5 of 7.0 needed", or "No Full test yet".
 - [ ] Results from before the Stage started, and results for other skills, never count towards a Gate.
-- [ ] Last Stages report "Final Stage", and a track that hasn't started reports "Not started". Neither is ever met.
+- [ ] Last Stages report "Last Stage" (changed from "Final Stage": GLOSSARY.md lists "final stage" under _Avoid_), and a track that hasn't started reports "Not started". Neither is ever met.
 - [ ] The fixed list of Reading Question types is defined here: Matching headings, Matching information, Matching features, Matching sentence endings, True / False / Not Given, Yes / No / Not Given, Multiple choice, Sentence completion, Summary, note, table or flow-chart completion, Diagram label completion, Short-answer questions.
