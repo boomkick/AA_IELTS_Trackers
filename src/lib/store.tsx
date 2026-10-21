@@ -4,23 +4,16 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from '
 import { QueryClient, QueryClientProvider, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { Session } from '@supabase/supabase-js'
 import { supabase, usernameToEmail } from '@/lib/supabase'
-import { toISO } from '@/lib/utils'
-import type { Completion, Course, Goal, GoalDraft, Habit, HabitDraft, Role, SectionScores, Skill, StageKey, StudyTask, StudyWeek, TaskType, TestResult, Track, User, VocabItem, WritingTask } from '@/types'
+import type { Course, Goal, GoalDraft, Habit, HabitDraft, Role, SectionScores, Skill, StageKey, TestResult, Track, User, VocabItem, WritingTask } from '@/types'
 import { TRACKS } from '@/lib/stages'
 
 // ---------------------------------------------------------------------------
 // Row shapes (snake_case, as stored) and mappers to the app's camelCase types
 // ---------------------------------------------------------------------------
 interface ProfileRow { id: string; username: string; display_name: string; role: Role }
-interface WeekRow { week_number: number; start_date: string; end_date: string; skill_focus: Skill; focus: string }
-interface TaskRow {
-  id: string; week_number: number; task_date: string; start_time: string | null; end_time: string | null
-  duration_min: number; task_type: TaskType; skill: Skill; title: string; description: string; due_date: string | null
-}
-interface CompletionRow { task_id: string; completed_on: string; score: string | null; note: string | null }
 interface VocabRow {
   id: string; word: string; ipa: string; definition_en: string; meaning_vi: string; example: string
-  collocations: string[]; week_number: number | null
+  collocations: string[]
 }
 interface TrackRow { skill: Skill; stage: StageKey | null; entered_on: string | null }
 interface GoalRow { id: string; skill: Skill; stage: StageKey; title: string; description: string; due_date: string | null; sort_order: number }
@@ -30,16 +23,9 @@ interface ResultRow {
   section_correct: SectionScores | null; wrong_by_type: TestResult['wrongByType'] | null; writing_task: WritingTask | null
 }
 
-const hhmm = (t: string | null) => (t ? t.slice(0, 5) : undefined)
-
-const toWeek = (r: WeekRow): StudyWeek => ({ number: r.week_number, startDate: r.start_date, endDate: r.end_date, skill: r.skill_focus, focus: r.focus })
-const toTask = (r: TaskRow): StudyTask => ({
-  id: r.id, weekNumber: r.week_number, date: r.task_date, startTime: hhmm(r.start_time), endTime: hhmm(r.end_time),
-  durationMin: r.duration_min, type: r.task_type, skill: r.skill, title: r.title, description: r.description, dueDate: r.due_date ?? undefined,
-})
 const toVocab = (r: VocabRow): VocabItem => ({
   id: r.id, word: r.word, ipa: r.ipa, definitionEn: r.definition_en, meaningVi: r.meaning_vi, example: r.example,
-  collocations: r.collocations, weekNumber: r.week_number ?? undefined,
+  collocations: r.collocations,
 })
 const toResult = (r: ResultRow): TestResult => ({
   id: r.id, date: r.test_date, skill: r.skill, band: Number(r.band), correct: r.correct ?? undefined, total: r.total_questions ?? undefined,
@@ -95,18 +81,6 @@ function useStoreValue() {
     enabled,
     queryFn: async () => (await rows<ProfileRow>(supabase.from('profiles').select('id, username, display_name, role').eq('id', uid!)))[0] ?? null,
   })
-  const weeksQ = useQuery({ queryKey: ['weeks'], enabled, queryFn: async () => (await rows<WeekRow>(supabase.from('study_weeks').select('*').order('week_number'))).map(toWeek) })
-  const tasksQ = useQuery({ queryKey: ['tasks'], enabled, queryFn: async () => (await rows<TaskRow>(supabase.from('study_tasks').select('*').order('task_date'))).map(toTask) })
-  const completionsQ = useQuery({
-    queryKey: ['completions'],
-    enabled,
-    queryFn: async () => {
-      const list = await rows<CompletionRow>(supabase.from('task_completions').select('task_id, completed_on, score, note'))
-      return Object.fromEntries(
-        list.map((c) => [c.task_id, { taskId: c.task_id, completedAt: c.completed_on, score: c.score ?? undefined, note: c.note ?? undefined } satisfies Completion]),
-      ) as Record<string, Completion>
-    },
-  })
   const vocabQ = useQuery({ queryKey: ['vocab'], enabled, queryFn: async () => (await rows<VocabRow>(supabase.from('vocabulary').select('*').order('created_at', { ascending: false }))).map(toVocab) })
   const reviewsQ = useQuery({ queryKey: ['reviews'], enabled, queryFn: async () => (await rows<{ vocab_id: string }>(supabase.from('vocab_reviews').select('vocab_id'))).map((r) => r.vocab_id) })
   const tracksQ = useQuery({
@@ -158,7 +132,7 @@ function useStoreValue() {
       return row ? ({ startDate: row.start_date, endDate: row.end_date } satisfies Course) : null
     },
   })
-  const core = [weeksQ, tasksQ, completionsQ, vocabQ, reviewsQ, resultsQ, tracksQ, goalsQ, goalsDoneQ, habitsQ, habitTicksQ]
+  const core = [vocabQ, reviewsQ, resultsQ, tracksQ, goalsQ, goalsDoneQ, habitsQ, habitTicksQ]
 
   /** Run a write; show the error and refresh the affected caches either way. */
   async function write(keys: string[], fn: () => Promise<void>) {
@@ -183,9 +157,6 @@ function useStoreValue() {
     dataLoading: core.some((q) => q.isPending),
     dataError: core.find((q) => q.error)?.error?.message,
     today,
-    weeks: weeksQ.data ?? [],
-    tasks: tasksQ.data ?? [],
-    completions: completionsQ.data ?? {},
     vocab: vocabQ.data ?? [],
     reviewed: reviewsQ.data ?? [],
     results: resultsQ.data ?? [],
@@ -208,42 +179,13 @@ function useStoreValue() {
       qc.clear()
     },
 
-    setCompletion(taskId: string, data: Omit<Completion, 'taskId' | 'completedAt'> | null) {
-      // optimistic: tick/untick instantly, then sync
-      qc.setQueryData<Record<string, Completion>>(['completions'], (old = {}) => {
-        const next = { ...old }
-        if (data === null) delete next[taskId]
-        else next[taskId] = { taskId, completedAt: toISO(new Date()), ...data }
-        return next
-      })
-      return write(['completions'], () =>
-        data === null
-          ? check(supabase.from('task_completions').delete().eq('task_id', taskId).eq('student_id', uid!))
-          : check(
-              supabase
-                .from('task_completions')
-                .upsert({ task_id: taskId, student_id: uid, score: data.score ?? null, note: data.note ?? null }, { onConflict: 'task_id,student_id' }),
-            ),
-      )
-    },
-    upsertTask(task: StudyTask) {
-      const row = {
-        week_number: task.weekNumber, task_date: task.date, start_time: task.startTime ?? null, end_time: task.endTime ?? null,
-        duration_min: task.durationMin, task_type: task.type, skill: task.skill, title: task.title.trim(), description: task.description,
-        due_date: task.type === 'homework' ? (task.dueDate ?? task.date) : null,
-      }
-      return write(['tasks'], () =>
-        task.id ? check(supabase.from('study_tasks').update(row).eq('id', task.id)) : check(supabase.from('study_tasks').insert(row)),
-      )
-    },
-    deleteTask: (id: string) => write(['tasks', 'completions'], () => check(supabase.from('study_tasks').delete().eq('id', id))),
     /** Move the Course end date, e.g. to the exam date once it's booked. */
     setCourseEnd: (endDate: string) => write(['course'], () => check(supabase.from('course').update({ end_date: endDate }).eq('id', 1))),
     /** Start or advance a track: it enters `stage` today, which is when its Gate starts counting results. */
     setTrackStage: (skill: Skill, stage: StageKey) =>
       write(['tracks'], () => check(supabase.from('tracks').upsert({ skill, stage, entered_on: today }, { onConflict: 'skill' }))),
     setGoalDone(goalId: string, done: boolean) {
-      // optimistic, like setCompletion
+      // optimistic: tick/untick instantly, then sync
       qc.setQueryData<Record<string, string>>(['goalsDone'], (old = {}) => {
         const next = { ...old }
         if (done) next[goalId] = today
@@ -287,7 +229,7 @@ function useStoreValue() {
         check(
           supabase.from('vocabulary').insert({
             word: v.word, ipa: v.ipa, definition_en: v.definitionEn, meaning_vi: v.meaningVi, example: v.example,
-            collocations: v.collocations, week_number: v.weekNumber ?? null,
+            collocations: v.collocations,
           }),
         ),
       ),
@@ -337,6 +279,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   )
 }
 
+// the hook lives beside its provider on purpose; fast refresh just reloads this file in full
+// eslint-disable-next-line react-refresh/only-export-components
 export function useStore() {
   const ctx = useContext(StoreContext)
   if (!ctx) throw new Error('useStore must be used inside StoreProvider')

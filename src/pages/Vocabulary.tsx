@@ -6,21 +6,18 @@ import { PageHeader } from '@/components/PageHeader'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Dialog } from '@/components/ui/dialog'
-import { Input, Label, Select, Textarea } from '@/components/ui/input'
+import { Input, Label, Textarea } from '@/components/ui/input'
 import type { VocabItem } from '@/types'
 
 export function Vocabulary() {
   const { user, vocab, reviewed, toggleReviewed, addVocab, deleteVocab } = useStore()
   const isTeacher = user?.role === 'teacher'
   const [query, setQuery] = useState('')
-  const [week, setWeek] = useState('all')
   const [formOpen, setFormOpen] = useState(false)
 
   const q = query.trim().toLowerCase()
   const list = vocab.filter(
-    (v) =>
-      (week === 'all' || String(v.weekNumber) === week) &&
-      (!q || v.word.toLowerCase().includes(q) || v.meaningVi.toLowerCase().includes(q) || v.definitionEn.toLowerCase().includes(q)),
+    (v) => !q || v.word.toLowerCase().includes(q) || v.meaningVi.toLowerCase().includes(q) || v.definitionEn.toLowerCase().includes(q),
   )
 
   return (
@@ -31,17 +28,9 @@ export function Vocabulary() {
         actions={isTeacher && <Button onClick={() => setFormOpen(true)}><Plus className="h-4 w-4" /> Add word</Button>}
       />
 
-      <div className="mb-4 flex flex-col gap-2 sm:flex-row">
-        <div className="relative flex-1">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-          <Input placeholder="Search word or meaning…" value={query} onChange={(e) => setQuery(e.target.value)} className="pl-9" />
-        </div>
-        <Select value={week} onChange={(e) => setWeek(e.target.value)} className="sm:w-40">
-          <option value="all">All weeks</option>
-          {Array.from({ length: 8 }, (_, i) => (
-            <option key={i} value={i + 1}>Week {i + 1}</option>
-          ))}
-        </Select>
+      <div className="relative mb-4">
+        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+        <Input placeholder="Search word or meaning…" value={query} onChange={(e) => setQuery(e.target.value)} className="pl-9" />
       </div>
 
       <div className="grid gap-3 md:grid-cols-2">
@@ -76,7 +65,6 @@ export function Vocabulary() {
                 {v.collocations.map((c) => (
                   <span key={c} className="rounded bg-slate-100 px-2 py-0.5 text-xs text-slate-700">{c}</span>
                 ))}
-                {v.weekNumber && <span className="ml-auto text-xs text-slate-400">Week {v.weekNumber}</span>}
               </div>
             </Card>
           )
@@ -90,7 +78,7 @@ export function Vocabulary() {
 }
 
 function VocabForm({ open, onClose, onSave }: { open: boolean; onClose: () => void; onSave: (v: Omit<VocabItem, 'id'>) => void }) {
-  const blank = { word: '', ipa: '', definitionEn: '', meaningVi: '', example: '', collocations: '', weekNumber: '' }
+  const blank = { word: '', ipa: '', definitionEn: '', meaningVi: '', example: '', collocations: '' }
   const [f, setF] = useState(blank)
   const set = (k: keyof typeof blank) => (e: { target: { value: string } }) => setF((s) => ({ ...s, [k]: e.target.value }))
 
@@ -103,7 +91,6 @@ function VocabForm({ open, onClose, onSave }: { open: boolean; onClose: () => vo
       meaningVi: f.meaningVi,
       example: f.example,
       collocations: f.collocations.split(',').map((c) => c.trim()).filter(Boolean),
-      weekNumber: f.weekNumber ? Number(f.weekNumber) : undefined,
     })
     setF(blank)
     onClose()
@@ -128,16 +115,7 @@ function VocabForm({ open, onClose, onSave }: { open: boolean; onClose: () => vo
       <div><Label>English definition</Label><Input value={f.definitionEn} onChange={set('definitionEn')} /></div>
       <div><Label>Vietnamese meaning</Label><Input value={f.meaningVi} onChange={set('meaningVi')} /></div>
       <div><Label>Example</Label><Textarea value={f.example} onChange={set('example')} className="min-h-16" /></div>
-      <div className="grid grid-cols-2 gap-3">
-        <div><Label>Collocations</Label><Input value={f.collocations} onChange={set('collocations')} placeholder="comma separated" /></div>
-        <div>
-          <Label>Week</Label>
-          <Select value={f.weekNumber} onChange={set('weekNumber')}>
-            <option value="">—</option>
-            {Array.from({ length: 8 }, (_, i) => <option key={i} value={i + 1}>Week {i + 1}</option>)}
-          </Select>
-        </div>
-      </div>
+      <div><Label>Collocations</Label><Input value={f.collocations} onChange={set('collocations')} placeholder="comma separated" /></div>
     </Dialog>
   )
 }

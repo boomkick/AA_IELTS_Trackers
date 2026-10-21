@@ -1,6 +1,6 @@
 import type { HTMLAttributes } from 'react'
 import { cn } from '@/lib/utils'
-import type { Skill, TaskType } from '@/types'
+import type { Skill } from '@/types'
 
 const tones = {
   navy: 'bg-navy-100 text-navy-800',
@@ -23,21 +23,6 @@ export function Badge({ tone = 'slate', className, ...props }: BadgeProps) {
       {...props}
     />
   )
-}
-
-const typeLabel: Record<TaskType, string> = {
-  teacher_session: 'Teacher-led',
-  self_study: 'Self-study',
-  homework: 'Homework',
-}
-const typeTone: Record<TaskType, keyof typeof tones> = {
-  teacher_session: 'navy',
-  self_study: 'slate',
-  homework: 'amber',
-}
-
-export function TaskTypeBadge({ type }: { type: TaskType }) {
-  return <Badge tone={typeTone[type]}>{typeLabel[type]}</Badge>
 }
 
 const skillTone: Record<Skill, keyof typeof tones> = {

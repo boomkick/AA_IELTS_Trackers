@@ -1,27 +1,23 @@
 import { NavLink, Outlet } from 'react-router-dom'
-import { BookOpen, CalendarDays, ClipboardList, GraduationCap, LayoutDashboard, LineChart, LogOut, Milestone, TriangleAlert } from 'lucide-react'
+import { BookOpen, GraduationCap, LayoutDashboard, LineChart, LogOut, Milestone } from 'lucide-react'
 import { useStore } from '@/lib/store'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 
 const NAV = [
   { to: '/', label: 'Dashboard', short: 'Home', icon: LayoutDashboard },
-  { to: '/plan', label: 'Study Plan', short: 'Plan', icon: CalendarDays },
-  { to: '/homework', label: 'Homework', short: 'Homework', icon: ClipboardList },
   { to: '/stages', label: 'Stages', short: 'Stages', icon: Milestone },
   { to: '/vocabulary', label: 'Vocabulary', short: 'Vocab', icon: BookOpen },
-  { to: '/errors', label: 'Error Log', short: 'Errors', icon: TriangleAlert },
   { to: '/progress', label: 'Progress', short: 'Progress', icon: LineChart },
 ]
 
 export function AppShell() {
-  const { user, logout, dataLoading, dataError, weeks } = useStore()
+  const { user, logout, dataLoading, dataError } = useStore()
   if (!user) return null
 
   let content = <Outlet />
   if (dataError) content = <Notice title="Could not load data" body={dataError} />
   else if (dataLoading) content = <Notice title="Loading…" />
-  else if (weeks.length === 0) content = <Notice title="No study plan yet" body="Run supabase/migrations/003_seed.sql in the Supabase SQL Editor (see README)." />
 
   return (
     <div className="min-h-screen md:flex">
@@ -89,7 +85,7 @@ export function AppShell() {
       </div>
 
       {/* Mobile bottom nav */}
-      <nav className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-7 border-t border-slate-200 bg-white pb-[env(safe-area-inset-bottom)] md:hidden">
+      <nav className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-4 border-t border-slate-200 bg-white pb-[env(safe-area-inset-bottom)] md:hidden">
         {NAV.map(({ to, short, icon: Icon }) => (
           <NavLink
             key={to}
