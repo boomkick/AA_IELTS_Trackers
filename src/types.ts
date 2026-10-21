@@ -1,3 +1,5 @@
+import type { QuestionType } from '@/lib/stages'
+
 export type Role = 'teacher' | 'student'
 export type Skill = 'Listening' | 'Reading' | 'Writing'
 export type StageKey = 'foundation' | 'diagnosis' | 'focus' | 'exam_ready' | 'passage3' | 'templates' | 'practice'
@@ -89,7 +91,14 @@ export interface TestResult {
   date: string
   skill: Skill
   band: number
-  correct: number
-  total: number
+  /** Listening and Reading only */
+  correct?: number
+  total?: number
   notes?: string
+  /** Listening: correct answers in Sections 1–4, each 0–10 */
+  sectionCorrect?: [number, number, number, number]
+  /** Reading: wrong answers per Question type; types with none are left out */
+  wrongByType?: Partial<Record<QuestionType, number>>
+  /** Writing: which Task the band is for */
+  writingTask?: 1 | 2
 }

@@ -1,8 +1,9 @@
 import { useState } from 'react'
-import { Bar, BarChart, CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
-import { BookOpenCheck, Headphones, ListChecks, Plus, Target } from 'lucide-react'
+import { CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import { BookOpenCheck, Headphones, PenLine, Plus, Search } from 'lucide-react'
 import { useStore } from '@/lib/store'
-import { completionRate, weekOf } from '@/lib/stats'
+import { weakestArea } from '@/lib/stats'
+import { QUESTION_TYPES } from '@/lib/stages'
 import { fmtDate } from '@/lib/utils'
 import { PageHeader } from '@/components/PageHeader'
 import { StatCard } from '@/components/StatCard'
@@ -15,10 +16,10 @@ import type { Skill, TestResult } from '@/types'
 
 const LISTENING = '#0284c7'
 const READING = '#0d9488'
+const WRITING = '#d97706'
 
 export function Progress() {
-  const { user, weeks, tasks, completions, results, today, addResult } = useStore()
-  const isStudent = user?.role === 'student'
+  const { results, today, addResult } = useStore()
   const [formOpen, setFormOpen] = useState(false)
 
   const sorted = [...results].sort((a, b) => a.date.localeCompare(b.date))
@@ -33,14 +34,11 @@ export function Progress() {
     }, {}),
   )
 
-  const currentWeek = weekOf(weeks, today)?.number ?? 0
-  const weeklyData = weeks
-    .filter((w) => w.number <= currentWeek)
-    .map((w) => ({ week: `W${w.number}`, rate: completionRate(tasks.filter((t) => t.weekNumber === w.number), completions) }))
-
-  const dueSoFar = tasks.filter((t) => (t.dueDate ?? t.date) < today)
   const L = latest('Listening')
   const R = latest('Reading')
+  const W = latest('Writing')
+  const weakL = L && weakestArea(L)
+  const weakR = R && weakestArea(R)
 
   const delta = (skill: Skill) => {
     const a = first(skill)
@@ -54,54 +52,41 @@ export function Progress() {
     <>
       <PageHeader
         title="Progress"
-        subtitle="Test scores and task completion"
-        actions={isStudent && <Button onClick={() => setFormOpen(true)}><Plus className="h-4 w-4" /> Add score</Button>}
+        subtitle="Full test results and weak spots"
+        actions={<Button onClick={() => setFormOpen(true)}><Plus className="h-4 w-4" /> Add score</Button>}
       />
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatCard label="Listening" value={L ? L.band.toFixed(1) : '—'} hint={delta('Listening')} icon={Headphones} />
         <StatCard label="Reading" value={R ? R.band.toFixed(1) : '—'} hint={delta('Reading')} icon={BookOpenCheck} />
-        <StatCard label="Completion" value={`${completionRate(dueSoFar, completions)}%`} hint="of tasks due so far" icon={ListChecks} />
-        <StatCard label="Target" value="6.5" hint="Listening & Reading" icon={Target} />
+        <StatCard label="Writing" value={W ? W.band.toFixed(1) : '—'} hint={delta('Writing')} icon={PenLine} />
+        <StatCard
+          label="Weakest area"
+          value={weakL || weakR ? <span className="block space-y-0.5 text-sm">{weakL && <span className="block">L: {weakL}</span>}{weakR && <span className="block">R: {weakR}</span>}</span> : '—'}
+          hint="from the latest Full tests"
+          icon={Search}
+        />
       </div>
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-2">
-        <Card>
-          <CardHeader><CardTitle>Band score history</CardTitle></CardHeader>
-          <CardContent>
-            <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={scoreData} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
-                  <XAxis dataKey="date" tick={{ fontSize: 12, fill: '#64748b' }} tickLine={false} axisLine={false} />
-                  <YAxis domain={[4, 9]} ticks={[4, 5, 6, 7, 8, 9]} tick={{ fontSize: 12, fill: '#64748b' }} tickLine={false} axisLine={false} />
-                  <Tooltip contentStyle={{ borderRadius: 8, border: '1px solid #e2e8f0', fontSize: 12 }} />
-                  <Legend iconType="circle" wrapperStyle={{ fontSize: 12 }} />
-                  <Line type="monotone" dataKey="Listening" stroke={LISTENING} strokeWidth={2} dot={{ r: 3 }} connectNulls />
-                  <Line type="monotone" dataKey="Reading" stroke={READING} strokeWidth={2} dot={{ r: 3 }} connectNulls />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader><CardTitle>Weekly task completion</CardTitle></CardHeader>
-          <CardContent>
-            <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={weeklyData} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
-                  <XAxis dataKey="week" tick={{ fontSize: 12, fill: '#64748b' }} tickLine={false} axisLine={false} />
-                  <YAxis domain={[0, 100]} unit="%" tick={{ fontSize: 12, fill: '#64748b' }} tickLine={false} axisLine={false} />
-                  <Tooltip formatter={(v) => [`${v}%`, 'Completed']} contentStyle={{ borderRadius: 8, border: '1px solid #e2e8f0', fontSize: 12 }} cursor={{ fill: '#f1f5f9' }} />
-                  <Bar dataKey="rate" fill="#10b981" radius={[4, 4, 0, 0]} maxBarSize={40} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      <Card className="mt-6">
+        <CardHeader><CardTitle>Band score history</CardTitle></CardHeader>
+        <CardContent>
+          <div className="h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={scoreData} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
+                <XAxis dataKey="date" tick={{ fontSize: 12, fill: '#64748b' }} tickLine={false} axisLine={false} />
+                <YAxis domain={[4, 9]} ticks={[4, 5, 6, 7, 8, 9]} tick={{ fontSize: 12, fill: '#64748b' }} tickLine={false} axisLine={false} />
+                <Tooltip contentStyle={{ borderRadius: 8, border: '1px solid #e2e8f0', fontSize: 12 }} />
+                <Legend iconType="circle" wrapperStyle={{ fontSize: 12 }} />
+                <Line type="monotone" dataKey="Listening" stroke={LISTENING} strokeWidth={2} dot={{ r: 3 }} connectNulls />
+                <Line type="monotone" dataKey="Reading" stroke={READING} strokeWidth={2} dot={{ r: 3 }} connectNulls />
+                <Line type="monotone" dataKey="Writing" stroke={WRITING} strokeWidth={2} dot={{ r: 3 }} connectNulls />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </CardContent>
+      </Card>
 
       <Card className="mt-6 overflow-hidden">
         <CardHeader><CardTitle>Score history</CardTitle></CardHeader>
@@ -120,8 +105,11 @@ export function Progress() {
               {[...sorted].reverse().map((r) => (
                 <tr key={r.id} className="border-t border-slate-100">
                   <td className="whitespace-nowrap px-5 py-2.5 text-slate-700">{fmtDate(r.date, 'EEE d MMM')}</td>
-                  <td className="px-3 py-2.5"><SkillBadge skill={r.skill} /></td>
-                  <td className="px-3 py-2.5 text-right text-slate-700">{r.correct}/{r.total}</td>
+                  <td className="whitespace-nowrap px-3 py-2.5">
+                    <SkillBadge skill={r.skill} />
+                    {r.writingTask && <span className="ml-1.5 text-xs text-slate-500">Task {r.writingTask}</span>}
+                  </td>
+                  <td className="px-3 py-2.5 text-right text-slate-700">{r.correct !== undefined && r.total !== undefined ? `${r.correct}/${r.total}` : '—'}</td>
                   <td className="px-3 py-2.5 text-right font-semibold text-slate-900">{r.band.toFixed(1)}</td>
                   <td className="px-5 py-2.5 text-slate-500">{r.notes ?? '—'}</td>
                 </tr>
@@ -131,24 +119,47 @@ export function Progress() {
         </div>
       </Card>
 
-      <ScoreForm open={formOpen} onClose={() => setFormOpen(false)} onSave={addResult} today={today} />
+      {formOpen && <ScoreForm onClose={() => setFormOpen(false)} onSave={addResult} today={today} />}
     </>
   )
 }
 
-function ScoreForm({ open, onClose, onSave, today }: { open: boolean; onClose: () => void; onSave: (r: Omit<TestResult, 'id'>) => void; today: string }) {
-  const [f, setF] = useState({ date: today, skill: 'Listening' as Skill, correct: '', band: '', notes: '' })
-  const valid = Number(f.band) >= 0 && Number(f.band) <= 9 && f.band !== '' && f.correct !== ''
+const SECTIONS = [0, 1, 2, 3] as const
+
+/** A whole number in [min, max]; blank is not one. */
+const inRange = (v: string, min: number, max: number) => v.trim() !== '' && Number.isInteger(Number(v)) && Number(v) >= min && Number(v) <= max
+
+function ScoreForm({ onClose, onSave, today }: { onClose: () => void; onSave: (r: Omit<TestResult, 'id'>) => void; today: string }) {
+  const [f, setF] = useState({ date: today, skill: 'Listening' as Skill, band: '', notes: '', correct: '', writingTask: 1 as 1 | 2 })
+  const [sections, setSections] = useState(['', '', '', ''])
+  const [wrong, setWrong] = useState<Record<string, string>>({})
+
+  const bandOk = f.band.trim() !== '' && Number(f.band) >= 0 && Number(f.band) <= 9 && Number(f.band) * 2 === Math.floor(Number(f.band) * 2)
+  const detailOk =
+    f.skill === 'Listening' ? sections.every((s) => inRange(s, 0, 10))
+    : f.skill === 'Reading' ? inRange(f.correct, 0, 40) && Object.values(wrong).every((v) => v.trim() === '' || inRange(v, 0, 40))
+    : true
+  const valid = !!f.date && bandOk && detailOk
 
   function submit() {
     if (!valid) return
-    onSave({ date: f.date, skill: f.skill, correct: Number(f.correct), total: 40, band: Number(f.band), notes: f.notes || undefined })
+    const base = { date: f.date, skill: f.skill, band: Number(f.band), notes: f.notes.trim() || undefined }
+    if (f.skill === 'Listening') {
+      const sectionCorrect = sections.map(Number) as [number, number, number, number]
+      onSave({ ...base, sectionCorrect, correct: sectionCorrect.reduce((a, b) => a + b, 0), total: 40 })
+    } else if (f.skill === 'Reading') {
+      // blanks and zeros are not saved
+      const wrongByType = Object.fromEntries(Object.entries(wrong).filter(([, v]) => Number(v) > 0).map(([k, v]) => [k, Number(v)]))
+      onSave({ ...base, correct: Number(f.correct), total: 40, wrongByType })
+    } else {
+      onSave({ ...base, writingTask: f.writingTask })
+    }
     onClose()
   }
 
   return (
     <Dialog
-      open={open}
+      open
       onClose={onClose}
       title="Add test score"
       footer={
@@ -159,18 +170,62 @@ function ScoreForm({ open, onClose, onSave, today }: { open: boolean; onClose: (
       }
     >
       <div className="grid grid-cols-2 gap-3">
-        <div><Label>Date</Label><Input type="date" value={f.date} onChange={(e) => setF({ ...f, date: e.target.value })} /></div>
+        <div><Label htmlFor="score-date">Date</Label><Input id="score-date" type="date" value={f.date} onChange={(e) => setF({ ...f, date: e.target.value })} /></div>
         <div>
-          <Label>Skill</Label>
-          <Select value={f.skill} onChange={(e) => setF({ ...f, skill: e.target.value as Skill })}>
+          <Label htmlFor="score-skill">Skill</Label>
+          <Select id="score-skill" value={f.skill} onChange={(e) => setF({ ...f, skill: e.target.value as Skill })}>
             <option>Listening</option>
             <option>Reading</option>
+            <option>Writing</option>
           </Select>
         </div>
-        <div><Label>Correct (of 40)</Label><Input type="number" min={0} max={40} value={f.correct} onChange={(e) => setF({ ...f, correct: e.target.value })} /></div>
-        <div><Label>Band</Label><Input type="number" min={0} max={9} step={0.5} value={f.band} onChange={(e) => setF({ ...f, band: e.target.value })} /></div>
+        <div><Label htmlFor="score-band">Band</Label><Input id="score-band" type="number" min={0} max={9} step={0.5} value={f.band} onChange={(e) => setF({ ...f, band: e.target.value })} /></div>
+
+        {f.skill === 'Reading' && (
+          <div><Label htmlFor="score-correct">Correct (of 40)</Label><Input id="score-correct" type="number" min={0} max={40} value={f.correct} onChange={(e) => setF({ ...f, correct: e.target.value })} /></div>
+        )}
+        {f.skill === 'Writing' && (
+          <div>
+            <Label htmlFor="score-task">Task</Label>
+            <Select id="score-task" value={f.writingTask} onChange={(e) => setF({ ...f, writingTask: Number(e.target.value) as 1 | 2 })}>
+              <option value={1}>Task 1</option>
+              <option value={2}>Task 2</option>
+            </Select>
+          </div>
+        )}
       </div>
-      <div><Label>Notes</Label><Textarea value={f.notes} onChange={(e) => setF({ ...f, notes: e.target.value })} className="min-h-16" /></div>
+
+      {f.skill === 'Listening' && (
+        <div>
+          <p className="mb-1 text-sm font-medium text-slate-700">
+            Correct per Section (0–10 each) · total {sections.every((s) => inRange(s, 0, 10)) ? sections.reduce((a, s) => a + Number(s), 0) : '…'}/40
+          </p>
+          <div className="grid grid-cols-4 gap-2">
+            {SECTIONS.map((i) => (
+              <div key={i}>
+                <Label htmlFor={`score-s${i + 1}`}>Section {i + 1}</Label>
+                <Input id={`score-s${i + 1}`} type="number" min={0} max={10} value={sections[i]} onChange={(e) => setSections(sections.map((s, j) => (j === i ? e.target.value : s)))} />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {f.skill === 'Reading' && (
+        <div>
+          <p className="mb-1 text-sm font-medium text-slate-700">Wrong answers per Question type (leave blank if none)</p>
+          <div className="space-y-1.5">
+            {QUESTION_TYPES.map((q) => (
+              <div key={q} className="flex items-center gap-2">
+                <label htmlFor={`wrong-${q}`} className="flex-1 text-sm text-slate-600">{q}</label>
+                <Input id={`wrong-${q}`} type="number" min={0} max={40} className="w-20" value={wrong[q] ?? ''} onChange={(e) => setWrong({ ...wrong, [q]: e.target.value })} />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div><Label htmlFor="score-notes">Notes</Label><Textarea id="score-notes" value={f.notes} onChange={(e) => setF({ ...f, notes: e.target.value })} className="min-h-16" /></div>
     </Dialog>
   )
 }

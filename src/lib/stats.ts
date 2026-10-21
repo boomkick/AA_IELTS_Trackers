@@ -1,6 +1,6 @@
 import { parseISO, subDays } from 'date-fns'
 import { toISO } from '@/lib/utils'
-import type { Completion, StudyTask, StudyWeek } from '@/types'
+import type { Completion, StudyTask, StudyWeek, TestResult } from '@/types'
 
 export function completionRate(tasks: StudyTask[], completions: Record<string, Completion>) {
   if (tasks.length === 0) return 0
@@ -24,4 +24,16 @@ export function currentStreak(completions: Record<string, Completion>, today: st
 export function weekOf(weeks: StudyWeek[], date: string): StudyWeek | undefined {
   if (weeks.length === 0) return undefined
   return weeks.find((w) => date >= w.startDate && date <= w.endDate) ?? (date < weeks[0].startDate ? weeks[0] : weeks[weeks.length - 1])
+}
+
+/** The weakest part of a Full test: the Listening Section with the fewest correct (ties go to the lower Section),
+ *  or the Reading Question type with the most wrong answers. Null when nothing was wrong or there is no detail. */
+export function weakestArea(result: TestResult): string | null {
+  if (result.sectionCorrect) {
+    const scores = result.sectionCorrect
+    return `Section ${scores.indexOf(Math.min(...scores)) + 1}`
+  }
+  const wrong = Object.entries(result.wrongByType ?? {}).filter(([, n]) => n > 0)
+  if (wrong.length === 0) return null
+  return wrong.reduce((worst, entry) => (entry[1] > worst[1] ? entry : worst))[0]
 }

@@ -29,7 +29,7 @@ Student browser ─┘
   | Goal and Habit ticks | read | own rows only (Habit ticks: today only) |
   | Task completions, homework scores & notes | read | own rows only |
   | Vocabulary "reviewed" marks | read | own rows only |
-  | Test results | read | own rows only |
+  | Test results | read; add for the student (Writing marks) | own rows only |
   | Profiles / roles | read | read (nobody can change roles via the API) |
 
 - Anonymous requests get no data at all.
@@ -44,7 +44,7 @@ Student browser ─┘
 | `task_completions` | Student ticks a task / submits homework (score, note). One per task. |
 | `vocabulary` | Word, IPA, English definition, Vietnamese meaning, example, collocations. |
 | `vocab_reviews` | Words the student has marked as reviewed. |
-| `test_results` | Mock test scores: band (0–9, steps of 0.5) and correct answers out of total. |
+| `test_results` | Full test results: band (0–9, steps of 0.5); Listening Section scores, Reading correct and wrong answers per Question type, or the Writing Task. |
 | `tracks` | Each skill's current Stage and the day it entered it (null until started). |
 | `goals` | The Goals of each Stage, with an optional due date. Edited by the teacher. |
 | `goal_completions` | Student ticks a Goal. Deleted with the Goal. |
@@ -60,6 +60,7 @@ SQL files, run in order:
 5. `005_replace_plan.sql` – replaces the plan on an already seeded database
 6. `006_tracks_goals.sql` – Skill tracks, Stage Goals and Goal ticks, with the starting Goals
 7. `007_habits.sql` – Stage Habits and Habit ticks, with the starting Habits
+8. `008_result_details.sql` – Writing results, Listening Section scores, Reading wrong answers per Question type; the teacher can add results
 
 ## Setup
 

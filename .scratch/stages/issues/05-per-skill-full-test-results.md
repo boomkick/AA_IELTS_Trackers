@@ -4,7 +4,7 @@
 
 **Blocked by:** 01
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 - [ ] Listening form: four Section scores, 0–10 each. The total correct (of 40) is their sum and isn't asked separately.
 - [ ] Reading form: correct (of 40), plus a wrong-answer count for each Question type. Blanks and zeros aren't saved.
@@ -14,3 +14,11 @@
 - [ ] The weakest area for Listening is the Section with the fewest correct, and ties go to the lower Section number. For Reading it's the Question type with the most wrong answers. If nothing was wrong, it shows "—".
 - [ ] The band chart has a Writing line. The weekly task completion chart is removed.
 - [ ] Existing Listening and Reading results still display.
+
+## Comments
+
+### Resolved (2026-10-21)
+
+Committed on `stages-plan`. `weakestArea(result)` in `src/lib/stats.ts` built test-first. `008_result_details.sql` allows Writing results, makes correct/total optional for Writing, adds `section_correct`, `wrong_by_type` and `writing_task` with checks (the Listening Sections check is `not valid` so older rows stay), and a teacher insert policy limited to the student's rows. The Progress page form changes fields by skill; the table shows "—" for Writing; the chart has a Writing line; the weekly completion chart is gone.
+
+**Still open (user action):** apply `008_result_details.sql` after 006/007, then add a Listening result (Sections 9/6/7/5, band 6.0: table shows 27/40, Weakest area "L: Section 4") and, as the teacher, a Writing Task 2 result (band 5.5: Correct shows "—", a Writing point appears on the chart).

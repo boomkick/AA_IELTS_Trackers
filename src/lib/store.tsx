@@ -25,7 +25,10 @@ interface VocabRow {
 interface TrackRow { skill: Skill; stage: StageKey | null; entered_on: string | null }
 interface GoalRow { id: string; skill: Skill; stage: StageKey; title: string; description: string; due_date: string | null; sort_order: number }
 interface HabitRow { id: string; skill: Skill; stage: StageKey; title: string; description: string; times_per_week: number; sort_order: number }
-interface ResultRow { id: string; test_date: string; skill: Skill; band: number | string; correct: number; total_questions: number; notes: string | null }
+interface ResultRow {
+  id: string; test_date: string; skill: Skill; band: number | string; correct: number | null; total_questions: number | null; notes: string | null
+  section_correct: [number, number, number, number] | null; wrong_by_type: TestResult['wrongByType'] | null; writing_task: 1 | 2 | null
+}
 
 const hhmm = (t: string | null) => (t ? t.slice(0, 5) : undefined)
 
@@ -39,7 +42,9 @@ const toVocab = (r: VocabRow): VocabItem => ({
   collocations: r.collocations, weekNumber: r.week_number ?? undefined,
 })
 const toResult = (r: ResultRow): TestResult => ({
-  id: r.id, date: r.test_date, skill: r.skill, band: Number(r.band), correct: r.correct, total: r.total_questions, notes: r.notes ?? undefined,
+  id: r.id, date: r.test_date, skill: r.skill, band: Number(r.band), correct: r.correct ?? undefined, total: r.total_questions ?? undefined,
+  notes: r.notes ?? undefined, sectionCorrect: r.section_correct ?? undefined, wrongByType: r.wrong_by_type ?? undefined,
+  writingTask: r.writing_task ?? undefined,
 })
 
 const toTrack = (r: TrackRow): Track => ({ skill: r.skill, stage: r.stage, enteredOn: r.entered_on })
@@ -284,10 +289,22 @@ function useStoreValue() {
           : check(supabase.from('vocab_reviews').insert({ vocab_id: id })),
       )
     },
+    /** Record a result. One the teacher adds belongs to the student. */
     addResult: (r: Omit<TestResult, 'id'>) =>
-      write(['results'], () =>
-        check(supabase.from('test_results').insert({ test_date: r.date, skill: r.skill, band: r.band, correct: r.correct, total_questions: r.total, notes: r.notes ?? null })),
-      ),
+      write(['results'], async () => {
+        let studentId = uid!
+        if (profile?.role === 'teacher') {
+          const [student] = await rows<{ id: string }>(supabase.from('profiles').select('id').eq('role', 'student').limit(1))
+          if (!student) throw new Error('No student account found.')
+          studentId = student.id
+        }
+        await check(
+          supabase.from('test_results').insert({
+            student_id: studentId, test_date: r.date, skill: r.skill, band: r.band, correct: r.correct ?? null, total_questions: r.total ?? null,
+            notes: r.notes ?? null, section_correct: r.sectionCorrect ?? null, wrong_by_type: r.wrongByType ?? null, writing_task: r.writingTask ?? null,
+          }),
+        )
+      }),
   }
 }
 
