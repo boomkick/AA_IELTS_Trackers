@@ -5,7 +5,7 @@ import { QueryClient, QueryClientProvider, useQuery, useQueryClient } from '@tan
 import type { Session } from '@supabase/supabase-js'
 import { supabase, usernameToEmail } from '@/lib/supabase'
 import { toISO } from '@/lib/utils'
-import type { Completion, Goal, GoalDraft, Role, Skill, StageKey, StudyTask, StudyWeek, TaskType, TestResult, Track, User, VocabItem } from '@/types'
+import type { Completion, Goal, GoalDraft, Habit, HabitDraft, Role, Skill, StageKey, StudyTask, StudyWeek, TaskType, TestResult, Track, User, VocabItem } from '@/types'
 import { TRACKS } from '@/lib/stages'
 
 // ---------------------------------------------------------------------------
@@ -24,6 +24,7 @@ interface VocabRow {
 }
 interface TrackRow { skill: Skill; stage: StageKey | null; entered_on: string | null }
 interface GoalRow { id: string; skill: Skill; stage: StageKey; title: string; description: string; due_date: string | null; sort_order: number }
+interface HabitRow { id: string; skill: Skill; stage: StageKey; title: string; description: string; times_per_week: number; sort_order: number }
 interface ResultRow { id: string; test_date: string; skill: Skill; band: number | string; correct: number; total_questions: number; notes: string | null }
 
 const hhmm = (t: string | null) => (t ? t.slice(0, 5) : undefined)
@@ -44,6 +45,10 @@ const toResult = (r: ResultRow): TestResult => ({
 const toTrack = (r: TrackRow): Track => ({ skill: r.skill, stage: r.stage, enteredOn: r.entered_on })
 const toGoal = (r: GoalRow): Goal => ({
   id: r.id, skill: r.skill, stage: r.stage, title: r.title, description: r.description, dueDate: r.due_date ?? undefined, sortOrder: r.sort_order,
+})
+
+const toHabit = (r: HabitRow): Habit => ({
+  id: r.id, skill: r.skill, stage: r.stage, title: r.title, description: r.description, timesPerWeek: r.times_per_week, sortOrder: r.sort_order,
 })
 
 // course order (Listening, Reading, Writing)
@@ -121,11 +126,26 @@ function useStoreValue() {
       return Object.fromEntries(list.map((c) => [c.goal_id, c.completed_on])) as Record<string, string>
     },
   })
+  const habitsQ = useQuery({
+    queryKey: ['habits'],
+    enabled,
+    queryFn: async () => (await rows<HabitRow>(supabase.from('habits').select('*').order('sort_order').order('created_at'))).map(toHabit),
+  })
+  const habitTicksQ = useQuery({
+    queryKey: ['habitTicks'],
+    enabled,
+    queryFn: async () => {
+      const list = await rows<{ habit_id: string; ticked_on: string }>(supabase.from('habit_ticks').select('habit_id, ticked_on'))
+      const byHabit: Record<string, string[]> = {}
+      for (const t of list) (byHabit[t.habit_id] ??= []).push(t.ticked_on)
+      return byHabit
+    },
+  })
   const resultsQ = useQuery({ queryKey: ['results'], enabled, queryFn: async () => (await rows<ResultRow>(supabase.from('test_results').select('*').order('test_date'))).map(toResult) })
 
   const profile = profileQ.data
   const user: User | null = profile ? { id: profile.id, username: profile.username, displayName: profile.display_name, role: profile.role } : null
-  const core = [weeksQ, tasksQ, completionsQ, vocabQ, reviewsQ, resultsQ, tracksQ, goalsQ, goalsDoneQ]
+  const core = [weeksQ, tasksQ, completionsQ, vocabQ, reviewsQ, resultsQ, tracksQ, goalsQ, goalsDoneQ, habitsQ, habitTicksQ]
 
   /** Run a write; show the error and refresh the affected caches either way. */
   async function write(keys: string[], fn: () => Promise<void>) {
@@ -138,6 +158,9 @@ function useStoreValue() {
     }
   }
 
+  // the course runs on Vietnam time, matching the database's default tick dates
+  const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' }).format(new Date())
+
   return {
     user,
     /** Waiting for the stored session / profile to load. */
@@ -146,7 +169,7 @@ function useStoreValue() {
     missingProfile: enabled && profileQ.isSuccess && !profile,
     dataLoading: core.some((q) => q.isPending),
     dataError: core.find((q) => q.error)?.error?.message,
-    today: toISO(new Date()),
+    today,
     weeks: weeksQ.data ?? [],
     tasks: tasksQ.data ?? [],
     completions: completionsQ.data ?? {},
@@ -157,6 +180,9 @@ function useStoreValue() {
     goals: goalsQ.data ?? [],
     /** goalId -> day the student ticked it */
     goalsDone: goalsDoneQ.data ?? {},
+    habits: habitsQ.data ?? [],
+    /** habitId -> days the student ticked it */
+    habitTicks: habitTicksQ.data ?? {},
 
     async login(username: string, pin: string): Promise<string | null> {
       const { error } = await supabase.auth.signInWithPassword({ email: usernameToEmail(username), password: pin })
@@ -200,7 +226,7 @@ function useStoreValue() {
       // optimistic, like setCompletion
       qc.setQueryData<Record<string, string>>(['goalsDone'], (old = {}) => {
         const next = { ...old }
-        if (done) next[goalId] = toISO(new Date())
+        if (done) next[goalId] = today
         else delete next[goalId]
         return next
       })
@@ -217,6 +243,25 @@ function useStoreValue() {
       return write(['goals'], () => (g.id ? check(supabase.from('goals').update(row).eq('id', g.id)) : check(supabase.from('goals').insert(row))))
     },
     deleteGoal: (id: string) => write(['goals', 'goalsDone'], () => check(supabase.from('goals').delete().eq('id', id))),
+    setHabitTicked(habitId: string, ticked: boolean) {
+      // optimistic; only today's tick can be added or removed (enforced by RLS)
+      qc.setQueryData<Record<string, string[]>>(['habitTicks'], (old = {}) => {
+        const days = (old[habitId] ?? []).filter((d) => d !== today)
+        return { ...old, [habitId]: ticked ? [...days, today] : days }
+      })
+      return write(['habitTicks'], () =>
+        ticked
+          ? check(supabase.from('habit_ticks').insert({ habit_id: habitId }))
+          : check(supabase.from('habit_ticks').delete().eq('habit_id', habitId).eq('student_id', uid!).eq('ticked_on', today)),
+      )
+    },
+    upsertHabit(h: HabitDraft) {
+      const row = {
+        skill: h.skill, stage: h.stage, title: h.title.trim(), description: h.description, times_per_week: h.timesPerWeek, sort_order: h.sortOrder,
+      }
+      return write(['habits'], () => (h.id ? check(supabase.from('habits').update(row).eq('id', h.id)) : check(supabase.from('habits').insert(row))))
+    },
+    deleteHabit: (id: string) => write(['habits', 'habitTicks'], () => check(supabase.from('habits').delete().eq('id', id))),
     addVocab: (v: Omit<VocabItem, 'id'>) =>
       write(['vocab'], () =>
         check(

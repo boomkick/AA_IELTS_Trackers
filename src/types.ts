@@ -70,6 +70,20 @@ export interface Goal {
 /** A Goal being added (no id yet) or edited. */
 export type GoalDraft = Omit<Goal, 'id'> & { id?: string }
 
+export interface Habit {
+  id: string
+  skill: Skill
+  stage: StageKey
+  title: string
+  description: string
+  /** 1–7; 7 means daily */
+  timesPerWeek: number
+  sortOrder: number
+}
+
+/** A Habit being added (no id yet) or edited. */
+export type HabitDraft = Omit<Habit, 'id'> & { id?: string }
+
 export interface TestResult {
   id: string
   date: string

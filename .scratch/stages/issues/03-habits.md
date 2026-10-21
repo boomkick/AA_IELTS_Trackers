@@ -4,7 +4,7 @@
 
 **Blocked by:** 02
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 - [ ] The rhythm is 1–7 times a week, and 7 shows as "daily".
 - [ ] Starting Habits:
@@ -17,3 +17,11 @@
 - [ ] Each Habit can be ticked at most once a day. Unticking today removes it.
 - [ ] The streak counts consecutive days ending today, or ending yesterday if today isn't ticked yet. It shows only for daily Habits.
 - [ ] Only the teacher can change Habits, and only the student can tick them. Both rules are enforced by the database.
+
+## Comments
+
+### Resolved (2026-10-21)
+
+Committed on `stages-plan`. Pure helpers in `src/lib/habits.ts` (`rhythmLabel`, `weekCount`, `streak`) built test-first. `007_habits.sql` adds `habits` and `habit_ticks` with RLS (teacher edits Habits; student ticks and unticks today only) and the starting Habits. The Stages page lists the current Stage's Habits with this week's count and, for daily Habits, a streak. The app's `today` is now the Vietnam date, so it matches the database's tick dates.
+
+**Still open (user action):** apply `006_tracks_goals.sql` then `007_habits.sql` in Supabase and run the manual checks (tick survives reload, Sunday/Monday week boundary, teacher can't tick, student can't edit Habits).

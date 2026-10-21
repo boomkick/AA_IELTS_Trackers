@@ -25,8 +25,8 @@ Student browser ─┘
   | Data | Teacher | Student |
   |---|---|---|
   | Study weeks, tasks, homework, vocabulary | create / edit / delete | read |
-  | Tracks and Goals | create / edit / delete | read |
-  | Goal ticks | read | own rows only |
+  | Tracks, Goals and Habits | create / edit / delete | read |
+  | Goal and Habit ticks | read | own rows only (Habit ticks: today only) |
   | Task completions, homework scores & notes | read | own rows only |
   | Vocabulary "reviewed" marks | read | own rows only |
   | Test results | read | own rows only |
@@ -48,6 +48,8 @@ Student browser ─┘
 | `tracks` | Each skill's current Stage and the day it entered it (null until started). |
 | `goals` | The Goals of each Stage, with an optional due date. Edited by the teacher. |
 | `goal_completions` | Student ticks a Goal. Deleted with the Goal. |
+| `habits` | The Habits of each Stage, each 1–7 times a week (7 = daily). Edited by the teacher. |
+| `habit_ticks` | Student ticks a Habit, at most once a day. Deleted with the Habit. |
 
 SQL files, run in order:
 
@@ -57,6 +59,7 @@ SQL files, run in order:
 4. `004_set_teacher.sql` – gives the teacher account its role (run after creating users)
 5. `005_replace_plan.sql` – replaces the plan on an already seeded database
 6. `006_tracks_goals.sql` – Skill tracks, Stage Goals and Goal ticks, with the starting Goals
+7. `007_habits.sql` – Stage Habits and Habit ticks, with the starting Habits
 
 ## Setup
 
