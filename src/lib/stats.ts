@@ -1,6 +1,11 @@
 import { parseISO, subDays } from 'date-fns'
 import { toISO } from '@/lib/utils'
+import { QUESTION_TYPES, type QuestionType } from '@/lib/stages'
 import type { Completion, StudyTask, StudyWeek, TestResult } from '@/types'
+
+/** Questions in a Full test, and in each of the four Listening Sections. */
+export const FULL_TEST_QUESTIONS = 40
+export const SECTION_QUESTIONS = 10
 
 export function completionRate(tasks: StudyTask[], completions: Record<string, Completion>) {
   if (tasks.length === 0) return 0
@@ -31,9 +36,12 @@ export function weekOf(weeks: StudyWeek[], date: string): StudyWeek | undefined 
 export function weakestArea(result: TestResult): string | null {
   if (result.sectionCorrect) {
     const scores = result.sectionCorrect
-    return `Section ${scores.indexOf(Math.min(...scores)) + 1}`
+    const lowest = Math.min(...scores)
+    return lowest < SECTION_QUESTIONS ? `Section ${scores.indexOf(lowest) + 1}` : null
   }
-  const wrong = Object.entries(result.wrongByType ?? {}).filter(([, n]) => n > 0)
-  if (wrong.length === 0) return null
-  return wrong.reduce((worst, entry) => (entry[1] > worst[1] ? entry : worst))[0]
+  // walk the Question types in their fixed order so ties don't depend on how the row was stored
+  const wrong = result.wrongByType ?? {}
+  let worst: QuestionType | null = null
+  for (const q of QUESTION_TYPES) if ((wrong[q] ?? 0) > (worst ? wrong[worst]! : 0)) worst = q
+  return worst
 }

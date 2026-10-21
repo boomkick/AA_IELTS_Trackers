@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { BookOpenCheck, Headphones, PenLine, Plus, Search } from 'lucide-react'
 import { useStore } from '@/lib/store'
-import { weakestArea } from '@/lib/stats'
+import { FULL_TEST_QUESTIONS, SECTION_QUESTIONS, weakestArea } from '@/lib/stats'
 import { QUESTION_TYPES } from '@/lib/stages'
 import { fmtDate } from '@/lib/utils'
 import { PageHeader } from '@/components/PageHeader'
@@ -12,7 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Dialog } from '@/components/ui/dialog'
 import { Input, Label, Select, Textarea } from '@/components/ui/input'
 import { SkillBadge } from '@/components/ui/badge'
-import type { Skill, TestResult } from '@/types'
+import type { SectionScores, Skill, TestResult, WritingTask } from '@/types'
 
 const LISTENING = '#0284c7'
 const READING = '#0d9488'
@@ -130,30 +130,36 @@ const SECTIONS = [0, 1, 2, 3] as const
 const inRange = (v: string, min: number, max: number) => v.trim() !== '' && Number.isInteger(Number(v)) && Number(v) >= min && Number(v) <= max
 
 function ScoreForm({ onClose, onSave, today }: { onClose: () => void; onSave: (r: Omit<TestResult, 'id'>) => void; today: string }) {
-  const [f, setF] = useState({ date: today, skill: 'Listening' as Skill, band: '', notes: '', correct: '', writingTask: 1 as 1 | 2 })
+  const [f, setF] = useState({ date: today, skill: 'Listening' as Skill, band: '', notes: '', correct: '', writingTask: 1 as WritingTask })
   const [sections, setSections] = useState(['', '', '', ''])
   const [wrong, setWrong] = useState<Record<string, string>>({})
 
-  const bandOk = f.band.trim() !== '' && Number(f.band) >= 0 && Number(f.band) <= 9 && Number(f.band) * 2 === Math.floor(Number(f.band) * 2)
-  const detailOk =
-    f.skill === 'Listening' ? sections.every((s) => inRange(s, 0, 10))
-    : f.skill === 'Reading' ? inRange(f.correct, 0, 40) && Object.values(wrong).every((v) => v.trim() === '' || inRange(v, 0, 40))
-    : true
-  const valid = !!f.date && bandOk && detailOk
+  // band in steps of 0.5: twice the band is a whole number from 0 to 18
+  const bandOk = f.band.trim() !== '' && inRange(String(Number(f.band) * 2), 0, 18)
+  const sectionsOk = sections.every((s) => inRange(s, 0, SECTION_QUESTIONS))
+  const sectionTotal = sections.reduce((sum, s) => sum + Number(s), 0)
+
+  // one place for the per-skill fields: whether they're valid, and what they save
+  const detail: Record<Skill, { ok: boolean; fields: () => Partial<TestResult> }> = {
+    Listening: {
+      ok: sectionsOk,
+      fields: () => ({ sectionCorrect: sections.map(Number) as SectionScores, correct: sectionTotal, total: FULL_TEST_QUESTIONS }),
+    },
+    Reading: {
+      ok: inRange(f.correct, 0, FULL_TEST_QUESTIONS) && Object.values(wrong).every((v) => v.trim() === '' || inRange(v, 0, FULL_TEST_QUESTIONS)),
+      // blanks and zeros are not saved
+      fields: () => ({
+        correct: Number(f.correct), total: FULL_TEST_QUESTIONS,
+        wrongByType: Object.fromEntries(Object.entries(wrong).filter(([, v]) => Number(v) > 0).map(([k, v]) => [k, Number(v)])),
+      }),
+    },
+    Writing: { ok: true, fields: () => ({ writingTask: f.writingTask }) },
+  }
+  const valid = !!f.date && bandOk && detail[f.skill].ok
 
   function submit() {
     if (!valid) return
-    const base = { date: f.date, skill: f.skill, band: Number(f.band), notes: f.notes.trim() || undefined }
-    if (f.skill === 'Listening') {
-      const sectionCorrect = sections.map(Number) as [number, number, number, number]
-      onSave({ ...base, sectionCorrect, correct: sectionCorrect.reduce((a, b) => a + b, 0), total: 40 })
-    } else if (f.skill === 'Reading') {
-      // blanks and zeros are not saved
-      const wrongByType = Object.fromEntries(Object.entries(wrong).filter(([, v]) => Number(v) > 0).map(([k, v]) => [k, Number(v)]))
-      onSave({ ...base, correct: Number(f.correct), total: 40, wrongByType })
-    } else {
-      onSave({ ...base, writingTask: f.writingTask })
-    }
+    onSave({ date: f.date, skill: f.skill, band: Number(f.band), notes: f.notes.trim() || undefined, ...detail[f.skill].fields() })
     onClose()
   }
 
@@ -182,12 +188,12 @@ function ScoreForm({ onClose, onSave, today }: { onClose: () => void; onSave: (r
         <div><Label htmlFor="score-band">Band</Label><Input id="score-band" type="number" min={0} max={9} step={0.5} value={f.band} onChange={(e) => setF({ ...f, band: e.target.value })} /></div>
 
         {f.skill === 'Reading' && (
-          <div><Label htmlFor="score-correct">Correct (of 40)</Label><Input id="score-correct" type="number" min={0} max={40} value={f.correct} onChange={(e) => setF({ ...f, correct: e.target.value })} /></div>
+          <div><Label htmlFor="score-correct">Correct (of {FULL_TEST_QUESTIONS})</Label><Input id="score-correct" type="number" min={0} max={FULL_TEST_QUESTIONS} value={f.correct} onChange={(e) => setF({ ...f, correct: e.target.value })} /></div>
         )}
         {f.skill === 'Writing' && (
           <div>
             <Label htmlFor="score-task">Task</Label>
-            <Select id="score-task" value={f.writingTask} onChange={(e) => setF({ ...f, writingTask: Number(e.target.value) as 1 | 2 })}>
+            <Select id="score-task" value={f.writingTask} onChange={(e) => setF({ ...f, writingTask: Number(e.target.value) as WritingTask })}>
               <option value={1}>Task 1</option>
               <option value={2}>Task 2</option>
             </Select>
@@ -198,13 +204,13 @@ function ScoreForm({ onClose, onSave, today }: { onClose: () => void; onSave: (r
       {f.skill === 'Listening' && (
         <div>
           <p className="mb-1 text-sm font-medium text-slate-700">
-            Correct per Section (0–10 each) · total {sections.every((s) => inRange(s, 0, 10)) ? sections.reduce((a, s) => a + Number(s), 0) : '…'}/40
+            Correct per Section (0–{SECTION_QUESTIONS} each) · total {sectionsOk ? sectionTotal : '…'}/{FULL_TEST_QUESTIONS}
           </p>
           <div className="grid grid-cols-4 gap-2">
             {SECTIONS.map((i) => (
               <div key={i}>
                 <Label htmlFor={`score-s${i + 1}`}>Section {i + 1}</Label>
-                <Input id={`score-s${i + 1}`} type="number" min={0} max={10} value={sections[i]} onChange={(e) => setSections(sections.map((s, j) => (j === i ? e.target.value : s)))} />
+                <Input id={`score-s${i + 1}`} type="number" min={0} max={SECTION_QUESTIONS} value={sections[i]} onChange={(e) => setSections(sections.map((s, j) => (j === i ? e.target.value : s)))} />
               </div>
             ))}
           </div>
@@ -218,7 +224,7 @@ function ScoreForm({ onClose, onSave, today }: { onClose: () => void; onSave: (r
             {QUESTION_TYPES.map((q) => (
               <div key={q} className="flex items-center gap-2">
                 <label htmlFor={`wrong-${q}`} className="flex-1 text-sm text-slate-600">{q}</label>
-                <Input id={`wrong-${q}`} type="number" min={0} max={40} className="w-20" value={wrong[q] ?? ''} onChange={(e) => setWrong({ ...wrong, [q]: e.target.value })} />
+                <Input id={`wrong-${q}`} type="number" min={0} max={FULL_TEST_QUESTIONS} className="w-20" value={wrong[q] ?? ''} onChange={(e) => setWrong({ ...wrong, [q]: e.target.value })} />
               </div>
             ))}
           </div>

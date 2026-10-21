@@ -5,7 +5,7 @@ import { QueryClient, QueryClientProvider, useQuery, useQueryClient } from '@tan
 import type { Session } from '@supabase/supabase-js'
 import { supabase, usernameToEmail } from '@/lib/supabase'
 import { toISO } from '@/lib/utils'
-import type { Completion, Goal, GoalDraft, Habit, HabitDraft, Role, Skill, StageKey, StudyTask, StudyWeek, TaskType, TestResult, Track, User, VocabItem } from '@/types'
+import type { Completion, Goal, GoalDraft, Habit, HabitDraft, Role, SectionScores, Skill, StageKey, StudyTask, StudyWeek, TaskType, TestResult, Track, User, VocabItem, WritingTask } from '@/types'
 import { TRACKS } from '@/lib/stages'
 
 // ---------------------------------------------------------------------------
@@ -27,7 +27,7 @@ interface GoalRow { id: string; skill: Skill; stage: StageKey; title: string; de
 interface HabitRow { id: string; skill: Skill; stage: StageKey; title: string; description: string; times_per_week: number; sort_order: number }
 interface ResultRow {
   id: string; test_date: string; skill: Skill; band: number | string; correct: number | null; total_questions: number | null; notes: string | null
-  section_correct: [number, number, number, number] | null; wrong_by_type: TestResult['wrongByType'] | null; writing_task: 1 | 2 | null
+  section_correct: SectionScores | null; wrong_by_type: TestResult['wrongByType'] | null; writing_task: WritingTask | null
 }
 
 const hhmm = (t: string | null) => (t ? t.slice(0, 5) : undefined)

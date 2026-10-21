@@ -96,9 +96,13 @@ export interface TestResult {
   total?: number
   notes?: string
   /** Listening: correct answers in Sections 1–4, each 0–10 */
-  sectionCorrect?: [number, number, number, number]
+  sectionCorrect?: SectionScores
   /** Reading: wrong answers per Question type; types with none are left out */
   wrongByType?: Partial<Record<QuestionType, number>>
   /** Writing: which Task the band is for */
-  writingTask?: 1 | 2
+  writingTask?: WritingTask
 }
+
+/** Correct answers in Listening Sections 1–4 */
+export type SectionScores = [number, number, number, number]
+export type WritingTask = 1 | 2
