@@ -4,9 +4,15 @@
 
 **Blocked by:** 01, 02
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 - [ ] All Weeks of the Course appear (27 with the starting dates), and the current Week is outlined.
 - [ ] Past Weeks show the real Stage from history, and future Weeks are blank.
 - [ ] Ticking a Mission here also shows it ticked on the This-week board.
 - [ ] Lint, build and tests are clean.
+
+## Comments
+
+### Resolved (2026-10-23)
+
+Committed on `stages-plan`. Lint, build and tests clean. Not yet checked in a browser against the real database.

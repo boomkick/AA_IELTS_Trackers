@@ -24,7 +24,7 @@ const STAGE_COLOR: Record<StageKey, string> = {
 }
 
 // the order the picked Week's Missions are grouped in
-const GROUPS: MissionType[] = ['teacher_session', 'homework', 'self_study']
+const TYPE_ORDER: MissionType[] = ['teacher_session', 'homework', 'self_study']
 
 /** Every Week of the Course against the Stage each Skill track was really in, and the picked Week's Missions by type. */
 export function CoursePlan() {
@@ -91,8 +91,8 @@ function Plan({ course }: { course: Course }) {
                       className={cn(
                         'h-9 truncate rounded px-1 text-[11px] text-slate-800',
                         stage ? STAGE_COLOR[stage] : 'bg-slate-50',
-                        isCurrent(w.number) && 'outline-2 outline-navy-400',
-                        w.number === week.number && 'outline-2 outline-navy-700',
+                        isCurrent(w.number) && 'ring-2 ring-navy-400',
+                        w.number === week.number && 'outline-2 outline-offset-1 outline-navy-700',
                       )}
                     >
                       {stage && stageDef(skill, stage).name}
@@ -105,9 +105,10 @@ function Plan({ course }: { course: Course }) {
             <div className="flex items-center text-slate-500">Done</div>
             {weeks.map((w) => {
               const list = missionsOfWeek(missions, w)
+              const rate = doneRate(list, missionsDone)
               return (
-                <div key={w.number} className="px-1 pt-1" title={`${doneRate(list, missionsDone)}% of ${list.length} Missions`}>
-                  <Progress value={doneRate(list, missionsDone)} />
+                <div key={w.number} className="px-1 pt-1" title={`${rate}% of ${list.length} Missions`}>
+                  <Progress value={rate} />
                 </div>
               )
             })}
@@ -130,7 +131,7 @@ function Plan({ course }: { course: Course }) {
       {weekMissions.length === 0 && <p className="text-sm text-slate-500">No Missions yet.</p>}
       {weekMissions.length > 0 && (
         <div className="grid gap-4 md:grid-cols-3">
-          {GROUPS.map((type) => {
+          {TYPE_ORDER.map((type) => {
             const list = weekMissions.filter((m) => m.type === type)
             return (
               <section key={type}>

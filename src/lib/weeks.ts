@@ -25,13 +25,19 @@ export function currentWeek(weeks: Week[], today: string): Week | undefined {
   return weekOf(weeks, today) ?? (today < weeks[0].startDate ? weeks[0] : weeks[weeks.length - 1])
 }
 
-/** The Stage `skill` was in during `week`: its latest Stage history entry on or before the Week's last day.
+/** All seven days of `week`, Monday to Sunday, even when the Course ends partway through the last Week. */
+export function weekDays(week: Week): string[] {
+  return Array.from({ length: 7 }, (_, i) => toISO(addDays(parseISO(week.startDate), i)))
+}
+
+/** The Stage `skill` was in during `week`: its latest Stage history entry on or before the Week's Sunday.
  *  Null for Weeks before the track started and for Weeks after today. */
 export function stageInWeek(entries: StageEntry[], skill: Skill, week: Week, today: string): StageKey | null {
   if (week.startDate > today) return null
+  const sunday = weekDays(week)[6]
   let latest: StageEntry | null = null
   for (const e of entries)
-    if (e.skill === skill && e.enteredOn <= week.endDate && (!latest || e.enteredOn >= latest.enteredOn)) latest = e
+    if (e.skill === skill && e.enteredOn <= sunday && (!latest || e.enteredOn >= latest.enteredOn)) latest = e
   return latest?.stage ?? null
 }
 

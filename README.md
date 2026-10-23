@@ -65,7 +65,7 @@ Student browser ─┘
 | `test_results` | Full test results: band (0–9, steps of 0.5); Listening Section scores, Reading correct and wrong answers per Question type, or the Writing Task. |
 | `course` | One row: the Course start and end date. The teacher moves the end date to the exam date. |
 | `tracks` | Each skill's current Stage and the day it entered it (null until started). |
-| `stage_entries` | Stage history: every start or advance of a track, with the Stage and the day. |
+| `stage_entries` | Stage history: every start or advance of a track, with the Stage and the day. Added by a trigger on `tracks`. |
 | `study_tasks` | Missions: date, type (Class with start and end time, Self-study, Homework with a due date), skill, title, instructions. A Mission's Week comes from its date. |
 | `task_completions` | Student ticks a Mission. Deleted with the Mission. |
 | `goals` | The Goals of each Stage, with an optional due date. Edited by the teacher. |
@@ -89,7 +89,7 @@ but keeps the Missions and their ticks.
 8. `008_result_details.sql` – Writing results, Listening Section scores, Reading wrong answers per Question type; the teacher can add results
 9. `009_course.sql` – Course start and end date (2026-10-19 to 2027-04-19 at first)
 10. `010_remove_calendar.sql` – drops `study_weeks` and the week columns (Weeks now come from the Course dates), keeps the Missions and their ticks, and allows Writing Missions
-11. `011_stage_entries.sql` – the Stage history, filled once from the current tracks
+11. `011_stage_entries.sql` – the Stage history and the trigger on `tracks` that adds to it, filled once from the current tracks
 
 ## Setup
 

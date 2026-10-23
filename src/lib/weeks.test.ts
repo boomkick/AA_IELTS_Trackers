@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { courseWeeks, currentWeek, stageInWeek, weekOf } from '@/lib/weeks'
+import { courseWeeks, currentWeek, stageInWeek, weekDays, weekOf } from '@/lib/weeks'
 import type { Skill, StageEntry } from '@/types'
 
 const course = { startDate: '2026-10-19', endDate: '2027-04-19' }
@@ -32,6 +32,14 @@ describe('weekOf', () => {
   test('a date outside the Course dates belongs to no Week', () => {
     expect(weekOf(weeks, '2026-10-18')).toBeUndefined()
     expect(weekOf(weeks, '2027-04-20')).toBeUndefined()
+  })
+})
+
+describe('weekDays', () => {
+  test('the last Week still has seven days, Monday to Sunday, though the Course ends on its Monday', () => {
+    const last = courseWeeks(course)[26]
+    expect(last).toEqual({ number: 27, startDate: '2027-04-19', endDate: '2027-04-19' })
+    expect(weekDays(last)).toEqual(['2027-04-19', '2027-04-20', '2027-04-21', '2027-04-22', '2027-04-23', '2027-04-24', '2027-04-25'])
   })
 })
 

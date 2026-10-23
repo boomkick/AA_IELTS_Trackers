@@ -47,6 +47,7 @@ const toMission = (r: MissionRow): Mission => ({
   title: r.title, description: r.description, dueDate: r.due_date ?? undefined,
 })
 
+const toStageEntry = (r: StageEntryRow): StageEntry => ({ skill: r.skill, stage: r.stage, enteredOn: r.entered_on })
 const toTrack = (r: TrackRow): Track => ({ skill: r.skill, stage: r.stage, enteredOn: r.entered_on })
 const toGoal = (r: GoalRow): Goal => ({
   id: r.id, skill: r.skill, stage: r.stage, title: r.title, description: r.description, dueDate: r.due_date ?? undefined, sortOrder: r.sort_order,
@@ -107,9 +108,7 @@ function useStoreValue() {
     queryKey: ['stageEntries'],
     enabled,
     queryFn: async () =>
-      (await rows<StageEntryRow>(supabase.from('stage_entries').select('skill, stage, entered_on').order('entered_on').order('created_at'))).map(
-        (r): StageEntry => ({ skill: r.skill, stage: r.stage, enteredOn: r.entered_on }),
-      ),
+      (await rows<StageEntryRow>(supabase.from('stage_entries').select('skill, stage, entered_on').order('entered_on').order('created_at'))).map(toStageEntry),
   })
   const missionsQ = useQuery({
     queryKey: ['missions'],
@@ -220,12 +219,10 @@ function useStoreValue() {
 
     /** Move the Course end date, e.g. to the exam date once it's booked. */
     setCourseEnd: (endDate: string) => write(['course'], () => check(supabase.from('course').update({ end_date: endDate }).eq('id', 1))),
-    /** Start or advance a track: it enters `stage` today, which is when its Gate starts counting results. Also recorded in the Stage history. */
+    /** Start or advance a track: it enters `stage` today, which is when its Gate starts counting results.
+     *  A trigger on `tracks` (migration 011) records it in the Stage history in the same write. */
     setTrackStage: (skill: Skill, stage: StageKey) =>
-      write(['tracks', 'stageEntries'], async () => {
-        await check(supabase.from('tracks').upsert({ skill, stage, entered_on: today }, { onConflict: 'skill' }))
-        await check(supabase.from('stage_entries').insert({ skill, stage, entered_on: today }))
-      }),
+      write(['tracks', 'stageEntries'], () => check(supabase.from('tracks').upsert({ skill, stage, entered_on: today }, { onConflict: 'skill' }))),
     setMissionDone(missionId: string, done: boolean) {
       // optimistic, like setGoalDone
       qc.setQueryData<Record<string, string>>(['missionsDone'], (old = {}) => {

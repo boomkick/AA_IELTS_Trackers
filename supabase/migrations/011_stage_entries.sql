@@ -5,7 +5,8 @@
 begin;
 
 -- ---------------------------------------------------------------------------
--- stage_entries: append-only; the app writes one whenever it writes public.tracks.
+-- stage_entries: a trigger on public.tracks adds one row per start or advance, in the
+-- same write. The teacher may correct or delete a row by hand.
 -- ---------------------------------------------------------------------------
 create table public.stage_entries (
   id         uuid primary key default gen_random_uuid(),
@@ -17,6 +18,24 @@ create table public.stage_entries (
 );
 
 create index stage_entries_skill_idx on public.stage_entries (skill, entered_on);
+
+-- Runs as the caller, so the insert passes the teacher-only policy below just as the
+-- tracks write did. Re-saving the same Stage on the same day records nothing.
+create or replace function public.record_stage_entry()
+returns trigger
+language plpgsql
+as $$
+begin
+  if new.stage is not null
+     and (tg_op = 'INSERT' or new.stage is distinct from old.stage or new.entered_on is distinct from old.entered_on) then
+    insert into public.stage_entries (skill, stage, entered_on) values (new.skill, new.stage, new.entered_on);
+  end if;
+  return new;
+end;
+$$;
+
+create trigger tracks_record_stage_entry after insert or update on public.tracks
+  for each row execute function public.record_stage_entry();
 
 -- ---------------------------------------------------------------------------
 -- RLS: everyone signed in reads it; only the teacher writes it.

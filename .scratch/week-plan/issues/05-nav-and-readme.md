@@ -4,8 +4,14 @@
 
 **Blocked by:** 03, 04
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 - [ ] Every nav item works on desktop and mobile, and no link goes to a removed page.
 - [ ] The sidebar shows the Course dates from the database.
 - [ ] Lint, build and tests are clean.
+
+## Comments
+
+### Resolved (2026-10-23)
+
+Committed on `stages-plan`. Lint, build and tests clean. Not yet checked in a browser against the real database.

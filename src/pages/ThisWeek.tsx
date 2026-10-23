@@ -1,10 +1,9 @@
 import { useState } from 'react'
-import { addDays, parseISO } from 'date-fns'
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react'
 import { useStore } from '@/lib/store'
 import { weeksLeftLabel } from '@/lib/stats'
-import { courseWeeks, currentWeek, doneRate, missionsOfWeek } from '@/lib/weeks'
-import { cn, fmtDate, toISO } from '@/lib/utils'
+import { courseWeeks, currentWeek, doneRate, missionsOfWeek, weekDays } from '@/lib/weeks'
+import { cn, fmtDate } from '@/lib/utils'
 import { MissionForm } from '@/components/MissionForm'
 import { MissionItem } from '@/components/MissionItem'
 import { NotStartedLine, TrackCard } from '@/components/TrackCard'
@@ -30,8 +29,6 @@ function Board({ course }: { course: Course }) {
   const week = weeks[Math.min(weekNo, weeks.length) - 1]
   if (!week) return null
   const weekMissions = missionsOfWeek(missions, week)
-  const days: string[] = []
-  for (let d = parseISO(week.startDate); toISO(d) <= week.endDate; d = addDays(d, 1)) days.push(toISO(d))
   const started = tracks.filter((t) => t.stage !== null)
   const notStarted = tracks.filter((t) => t.stage === null)
   const addButton = isTeacher && (
@@ -86,10 +83,17 @@ function Board({ course }: { course: Course }) {
           </Card>
         ) : (
           <div className="grid content-start gap-2 sm:grid-cols-2 xl:grid-cols-7">
-            {days.map((date) => (
-              <div key={date} className={cn('rounded-xl border p-2', date === today ? 'border-navy-400 bg-navy-50/60' : 'border-slate-200 bg-slate-50')}>
+            {weekDays(week).map((date) => (
+              <div
+                key={date}
+                className={cn(
+                  'rounded-xl border p-2',
+                  date === today ? 'border-navy-400 bg-navy-50/60' : 'border-slate-200 bg-slate-50',
+                  date > week.endDate && 'opacity-50',
+                )}
+              >
                 <p className={cn('mb-2 text-xs font-semibold uppercase', date === today ? 'text-navy-700' : 'text-slate-500')}>
-                  {fmtDate(date, 'EEE d')}{date === today && ' · today'}
+                  {fmtDate(date, 'EEE d')}{date === today && ' · today'}{date > week.endDate && ' · after the Course'}
                 </p>
                 <div className="space-y-1.5">
                   {weekMissions.filter((m) => m.date === date).map((m) => (
