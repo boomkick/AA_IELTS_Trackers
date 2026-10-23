@@ -19,3 +19,7 @@
 Committed on `stages-plan`. `010_remove_calendar.sql` drops `vocabulary.week_number`, then `task_completions`, `study_tasks` and `study_weeks`. The Study Plan, Homework and Error Log pages, `TaskForm`, `TaskItem`, `TaskTypeBadge`, the seed generator scripts and the `gen:seed` script are gone. Navigation is Dashboard, Stages, Vocabulary, Progress; `AppShell` no longer waits for study weeks. The Vocabulary page has no week filter or field. README rewritten around the Course and Stages, with all ten migrations and fresh-setup steps. Tests (38), build and lint clean; the long-standing fast-refresh warning on `useStore` is silenced with a comment.
 
 **Still open (user action):** apply 006–010 in Supabase in order, then check each page loads and adding a word on Vocabulary works.
+
+### Partly reversed (2026-10-23)
+
+ADR 0002 (`docs/adr/0002-weeks-and-missions-alongside-stages.md`) brings Weeks and Missions back alongside the Stages. Migration 010 was never applied, so it was changed to keep `study_tasks` and `task_completions` (the Missions of Weeks 1–8) and drop only `study_weeks` and the week columns. See `.scratch/week-plan/`.

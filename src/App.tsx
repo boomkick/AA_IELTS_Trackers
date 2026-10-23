@@ -4,7 +4,8 @@ import { StoreProvider, useStore } from '@/lib/store'
 import { isSupabaseConfigured } from '@/lib/supabase'
 import { AppShell } from '@/components/layout/AppShell'
 import { Login } from '@/pages/Login'
-import { Dashboard } from '@/pages/Dashboard'
+import { ThisWeek } from '@/pages/ThisWeek'
+import { CoursePlan } from '@/pages/CoursePlan'
 import { Stages } from '@/pages/Stages'
 import { Vocabulary } from '@/pages/Vocabulary'
 import { Progress } from '@/pages/Progress'
@@ -46,7 +47,8 @@ export default function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route element={<RequireAuth><AppShell /></RequireAuth>}>
-            <Route index element={<Dashboard />} />
+            <Route index element={<ThisWeek />} />
+            <Route path="plan" element={<CoursePlan />} />
             <Route path="stages" element={<Stages />} />
             <Route path="vocabulary" element={<Vocabulary />} />
             <Route path="progress" element={<Progress />} />

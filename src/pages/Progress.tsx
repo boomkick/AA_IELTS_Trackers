@@ -3,7 +3,7 @@ import { CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, X
 import { BookOpenCheck, Headphones, PenLine, Plus, Search, type LucideIcon } from 'lucide-react'
 import { useStore } from '@/lib/store'
 import { FULL_TEST_QUESTIONS, SECTION_QUESTIONS, weakestArea } from '@/lib/stats'
-import { QUESTION_TYPES, TRACKS } from '@/lib/stages'
+import { QUESTION_TYPES, SKILLS } from '@/lib/stages'
 import { fmtDate } from '@/lib/utils'
 import { PageHeader } from '@/components/PageHeader'
 import { StatCard } from '@/components/StatCard'
@@ -19,7 +19,6 @@ const READING = '#0d9488'
 const WRITING = '#d97706'
 
 // course order (Listening, Reading, Writing)
-const SKILLS = Object.keys(TRACKS) as Skill[]
 const SKILL_ICONS: Record<Skill, LucideIcon> = { Listening: Headphones, Reading: BookOpenCheck, Writing: PenLine }
 
 export function Progress() {

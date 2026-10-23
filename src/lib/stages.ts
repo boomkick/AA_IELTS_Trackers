@@ -49,6 +49,9 @@ export const TRACKS: Record<Skill, TrackDef> = {
 }
 
 /** Reading Question types, used to record where Full test answers went wrong. */
+/** The skills in course order (Listening, Reading, Writing). */
+export const SKILLS = Object.keys(TRACKS) as Skill[]
+
 export const QUESTION_TYPES = [
   'Matching headings',
   'Matching information',

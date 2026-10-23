@@ -4,8 +4,11 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from '
 import { QueryClient, QueryClientProvider, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { Session } from '@supabase/supabase-js'
 import { supabase, usernameToEmail } from '@/lib/supabase'
-import type { Course, Goal, GoalDraft, Habit, HabitDraft, Role, SectionScores, Skill, StageKey, TestResult, Track, User, VocabItem, WritingTask } from '@/types'
-import { TRACKS } from '@/lib/stages'
+import type {
+  Course, Goal, GoalDraft, Habit, HabitDraft, Mission, MissionDraft, MissionType, Role, SectionScores, Skill, StageEntry, StageKey, TestResult, Track, User,
+  VocabItem, WritingTask,
+} from '@/types'
+import { SKILLS } from '@/lib/stages'
 
 // ---------------------------------------------------------------------------
 // Row shapes (snake_case, as stored) and mappers to the app's camelCase types
@@ -15,6 +18,11 @@ interface VocabRow {
   id: string; word: string; ipa: string; definition_en: string; meaning_vi: string; example: string
   collocations: string[]
 }
+interface MissionRow {
+  id: string; task_date: string; start_time: string | null; end_time: string | null; duration_min: number; task_type: MissionType; skill: Skill
+  title: string; description: string; due_date: string | null
+}
+interface StageEntryRow { skill: Skill; stage: StageKey; entered_on: string }
 interface TrackRow { skill: Skill; stage: StageKey | null; entered_on: string | null }
 interface GoalRow { id: string; skill: Skill; stage: StageKey; title: string; description: string; due_date: string | null; sort_order: number }
 interface HabitRow { id: string; skill: Skill; stage: StageKey; title: string; description: string; times_per_week: number; sort_order: number }
@@ -33,6 +41,12 @@ const toResult = (r: ResultRow): TestResult => ({
   writingTask: r.writing_task ?? undefined,
 })
 
+const hhmm = (t: string | null) => (t ? t.slice(0, 5) : undefined)
+const toMission = (r: MissionRow): Mission => ({
+  id: r.id, date: r.task_date, startTime: hhmm(r.start_time), endTime: hhmm(r.end_time), durationMin: r.duration_min, type: r.task_type, skill: r.skill,
+  title: r.title, description: r.description, dueDate: r.due_date ?? undefined,
+})
+
 const toTrack = (r: TrackRow): Track => ({ skill: r.skill, stage: r.stage, enteredOn: r.entered_on })
 const toGoal = (r: GoalRow): Goal => ({
   id: r.id, skill: r.skill, stage: r.stage, title: r.title, description: r.description, dueDate: r.due_date ?? undefined, sortOrder: r.sort_order,
@@ -41,9 +55,6 @@ const toGoal = (r: GoalRow): Goal => ({
 const toHabit = (r: HabitRow): Habit => ({
   id: r.id, skill: r.skill, stage: r.stage, title: r.title, description: r.description, timesPerWeek: r.times_per_week, sortOrder: r.sort_order,
 })
-
-// course order (Listening, Reading, Writing)
-const SKILLS = Object.keys(TRACKS) as Skill[]
 
 async function rows<T>(query: PromiseLike<{ data: unknown; error: { message: string } | null }>): Promise<T[]> {
   const { data, error } = await query
@@ -92,6 +103,27 @@ function useStoreValue() {
       return SKILLS.map((skill): Track => list.find((t) => t.skill === skill) ?? { skill, stage: null, enteredOn: null })
     },
   })
+  const stageEntriesQ = useQuery({
+    queryKey: ['stageEntries'],
+    enabled,
+    queryFn: async () =>
+      (await rows<StageEntryRow>(supabase.from('stage_entries').select('skill, stage, entered_on').order('entered_on').order('created_at'))).map(
+        (r): StageEntry => ({ skill: r.skill, stage: r.stage, enteredOn: r.entered_on }),
+      ),
+  })
+  const missionsQ = useQuery({
+    queryKey: ['missions'],
+    enabled,
+    queryFn: async () => (await rows<MissionRow>(supabase.from('study_tasks').select('*').order('task_date').order('start_time'))).map(toMission),
+  })
+  const missionsDoneQ = useQuery({
+    queryKey: ['missionsDone'],
+    enabled,
+    queryFn: async () => {
+      const list = await rows<{ task_id: string; completed_on: string }>(supabase.from('task_completions').select('task_id, completed_on'))
+      return Object.fromEntries(list.map((c) => [c.task_id, c.completed_on])) as Record<string, string>
+    },
+  })
   const goalsQ = useQuery({
     queryKey: ['goals'],
     enabled,
@@ -132,7 +164,7 @@ function useStoreValue() {
       return row ? ({ startDate: row.start_date, endDate: row.end_date } satisfies Course) : null
     },
   })
-  const core = [vocabQ, reviewsQ, resultsQ, tracksQ, goalsQ, goalsDoneQ, habitsQ, habitTicksQ]
+  const core = [vocabQ, reviewsQ, resultsQ, tracksQ, goalsQ, goalsDoneQ, habitsQ, habitTicksQ, missionsQ, missionsDoneQ]
 
   /** Run a write; show the error and refresh the affected caches either way. */
   async function write(keys: string[], fn: () => Promise<void>) {
@@ -161,6 +193,11 @@ function useStoreValue() {
     reviewed: reviewsQ.data ?? [],
     results: resultsQ.data ?? [],
     tracks: tracksQ.data ?? [],
+    /** Stage history, oldest first. Empty until migration 011 has run; not in `core`, like `course`. */
+    stageEntries: stageEntriesQ.data ?? [],
+    missions: missionsQ.data ?? [],
+    /** missionId -> day the student ticked it */
+    missionsDone: missionsDoneQ.data ?? {},
     goals: goalsQ.data ?? [],
     /** goalId -> day the student ticked it */
     goalsDone: goalsDoneQ.data ?? {},
@@ -183,9 +220,35 @@ function useStoreValue() {
 
     /** Move the Course end date, e.g. to the exam date once it's booked. */
     setCourseEnd: (endDate: string) => write(['course'], () => check(supabase.from('course').update({ end_date: endDate }).eq('id', 1))),
-    /** Start or advance a track: it enters `stage` today, which is when its Gate starts counting results. */
+    /** Start or advance a track: it enters `stage` today, which is when its Gate starts counting results. Also recorded in the Stage history. */
     setTrackStage: (skill: Skill, stage: StageKey) =>
-      write(['tracks'], () => check(supabase.from('tracks').upsert({ skill, stage, entered_on: today }, { onConflict: 'skill' }))),
+      write(['tracks', 'stageEntries'], async () => {
+        await check(supabase.from('tracks').upsert({ skill, stage, entered_on: today }, { onConflict: 'skill' }))
+        await check(supabase.from('stage_entries').insert({ skill, stage, entered_on: today }))
+      }),
+    setMissionDone(missionId: string, done: boolean) {
+      // optimistic, like setGoalDone
+      qc.setQueryData<Record<string, string>>(['missionsDone'], (old = {}) => {
+        const next = { ...old }
+        if (done) next[missionId] = today
+        else delete next[missionId]
+        return next
+      })
+      return write(['missionsDone'], () =>
+        done
+          ? check(supabase.from('task_completions').insert({ task_id: missionId }))
+          : check(supabase.from('task_completions').delete().eq('task_id', missionId).eq('student_id', uid!)),
+      )
+    },
+    upsertMission(m: MissionDraft) {
+      const isClass = m.type === 'teacher_session'
+      const row = {
+        task_date: m.date, start_time: isClass ? (m.startTime ?? null) : null, end_time: isClass ? (m.endTime ?? null) : null, duration_min: m.durationMin,
+        task_type: m.type, skill: m.skill, title: m.title.trim(), description: m.description, due_date: m.type === 'homework' ? (m.dueDate ?? m.date) : null,
+      }
+      return write(['missions'], () => (m.id ? check(supabase.from('study_tasks').update(row).eq('id', m.id)) : check(supabase.from('study_tasks').insert(row))))
+    },
+    deleteMission: (id: string) => write(['missions', 'missionsDone'], () => check(supabase.from('study_tasks').delete().eq('id', id))),
     setGoalDone(goalId: string, done: boolean) {
       // optimistic: tick/untick instantly, then sync
       qc.setQueryData<Record<string, string>>(['goalsDone'], (old = {}) => {
