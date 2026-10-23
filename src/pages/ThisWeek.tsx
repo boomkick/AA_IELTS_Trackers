@@ -75,15 +75,15 @@ function Board({ course }: { course: Course }) {
         })}
       </div>
 
-      {/* day columns get the full width; the track cards follow in a row so neither is squeezed on a laptop screen */}
-      <div className="space-y-4">
+      {/* from lg: day cards on the left 2/3, two per row; track cards stacked on the right 1/3. Below lg they stack. */}
+      <div className="grid items-start gap-4 lg:grid-cols-3">
         {weekMissions.length === 0 ? (
-          <Card className="flex flex-col items-center justify-center gap-3 px-6 py-12 text-center">
+          <Card className="flex flex-col items-center justify-center gap-3 px-6 py-12 text-center lg:col-span-2">
             <p className="font-medium text-slate-900">No Missions yet</p>
             {addButton}
           </Card>
         ) : (
-          <div className="grid content-start gap-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7">
+          <div className="grid content-start gap-2 sm:grid-cols-2 lg:col-span-2">
             {weekDays(week).map((date) => (
               <div
                 key={date}
@@ -107,7 +107,7 @@ function Board({ course }: { course: Course }) {
         )}
 
         <aside className="space-y-3">
-          <div className="grid items-start gap-3 md:grid-cols-2 xl:grid-cols-3">
+          <div className="grid items-start gap-3 md:grid-cols-2 lg:grid-cols-1">
             {started.map((t) => <TrackCard key={t.skill} track={t} />)}
           </div>
           {notStarted.map((t) => <NotStartedLine key={t.skill} track={t} />)}
