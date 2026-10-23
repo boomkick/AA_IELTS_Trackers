@@ -12,7 +12,7 @@ The landing page after login is now the This-week board. It shows the current We
 ## Consequences
 
 - Weeks cover the whole Course (Monday-to-Sunday blocks from the Course start date to its end date), not a fixed 8. They are computed from the Course dates, not stored.
-- The first 8 Weeks keep the Missions already seeded by migrations 003/005. The teacher adds Missions for later Weeks in the app.
-- `study_tasks` and `task_completions` are kept (migration 010 had not been applied). A Mission's Week is computed from its date. `study_tasks` may now hold Writing Missions.
+- The first 8 Weeks get back the Missions that migrations 003/005 had seeded. The teacher adds Missions for later Weeks in the app.
+- Migration 010 had already dropped `study_tasks` and `task_completions`, so migration 011 re-creates them without a week column and re-seeds the Missions of Weeks 1–8. Ticks made before 010 are lost (no student had used the app). A Mission's Week is computed from its date. `study_tasks` may now hold Writing Missions.
 - Every time a track starts or advances, the new Stage and its date are recorded in a Stage history. Past Weeks in the Course plan show the Stage each skill was really in.
 - A Goal is still a one-off item without a fixed day inside a Stage. A Mission is a dated item inside a Week. Homework stays a Mission type, so "Homework is a Goal with a due date" from ADR 0001 no longer holds.

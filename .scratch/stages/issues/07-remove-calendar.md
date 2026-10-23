@@ -22,4 +22,4 @@ Committed on `stages-plan`. `010_remove_calendar.sql` drops `vocabulary.week_num
 
 ### Partly reversed (2026-10-23)
 
-ADR 0002 (`docs/adr/0002-weeks-and-missions-alongside-stages.md`) brings Weeks and Missions back alongside the Stages. Migration 010 was never applied, so it was changed to keep `study_tasks` and `task_completions` (the Missions of Weeks 1–8) and drop only `study_weeks` and the week columns. See `.scratch/week-plan/`.
+ADR 0002 (`docs/adr/0002-weeks-and-missions-alongside-stages.md`) brings Weeks and Missions back alongside the Stages. Migration 010 had already been applied, so it stays as it was. Migration 011 re-creates `study_tasks` and `task_completions` without a week column and re-seeds the Missions of Weeks 1–8. See `.scratch/week-plan/`.

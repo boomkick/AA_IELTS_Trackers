@@ -192,7 +192,7 @@ function useStoreValue() {
     reviewed: reviewsQ.data ?? [],
     results: resultsQ.data ?? [],
     tracks: tracksQ.data ?? [],
-    /** Stage history, oldest first. Empty until migration 011 has run; not in `core`, like `course`. */
+    /** Stage history, oldest first. Empty until migration 012 has run; not in `core`, like `course`. */
     stageEntries: stageEntriesQ.data ?? [],
     missions: missionsQ.data ?? [],
     /** missionId -> day the student ticked it */
@@ -220,7 +220,7 @@ function useStoreValue() {
     /** Move the Course end date, e.g. to the exam date once it's booked. */
     setCourseEnd: (endDate: string) => write(['course'], () => check(supabase.from('course').update({ end_date: endDate }).eq('id', 1))),
     /** Start or advance a track: it enters `stage` today, which is when its Gate starts counting results.
-     *  A trigger on `tracks` (migration 011) records it in the Stage history in the same write. */
+     *  A trigger on `tracks` (migration 012) records it in the Stage history in the same write. */
     setTrackStage: (skill: Skill, stage: StageKey) =>
       write(['tracks', 'stageEntries'], () => check(supabase.from('tracks').upsert({ skill, stage, entered_on: today }, { onConflict: 'skill' }))),
     setMissionDone(missionId: string, done: boolean) {

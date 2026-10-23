@@ -16,6 +16,6 @@
 
 ### Resolved (2026-10-23)
 
-Committed on `stages-plan`. Migration 010 now drops only `vocabulary.week_number`, `study_tasks.week_number` and `study_weeks`, keeps `study_tasks` and `task_completions`, and allows Writing. `src/lib/weeks.ts` has `courseWeeks`, `weekOf`, `currentWeek` and `weekDays`, test-first. The last Week's `endDate` stops at the Course end, so a Mission after it has no Week, but `weekDays` still gives seven columns. The store loads Missions and ticks and has `upsertMission`, `deleteMission` and `setMissionDone`. The Mission form is `MissionForm`.
+Committed on `stages-plan`. The ticket's premise was wrong: the original 010 had already been applied, and it had dropped `study_tasks` and `task_completions` (found when the changed 010 failed on `vocabulary.week_number`). So 010 is back to its original content. The new `011_missions.sql` re-creates both tables without `week_number` and with Writing allowed, uses the same RLS as 002, and re-seeds the 71 Missions of Weeks 1–8 from 005. Ticks made before 010 are lost. The Stage history moved to `012_stage_entries.sql`. `src/lib/weeks.ts` has `courseWeeks`, `weekOf`, `currentWeek` and `weekDays`, test-first. The last Week's `endDate` stops at the Course end, so a Mission after it has no Week, but `weekDays` still gives seven columns. The store loads Missions and ticks and has `upsertMission`, `deleteMission` and `setMissionDone`. The Mission form is `MissionForm`.
 
-**Still open (user action):** apply 010 and 011 in Supabase, then check that the Missions of Weeks 1–8 and their ticks are still there.
+**Still open (user action):** apply 011 and 012 in Supabase. 011's check should show 71 Missions.

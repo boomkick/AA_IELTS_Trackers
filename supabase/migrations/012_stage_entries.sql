@@ -1,6 +1,6 @@
 -- Stage history (ADR 0002): every start or advance of a Skill track records the Stage it
 -- entered and the day. The Course plan reads it to show which Stage each skill was in
--- during each Week. Run after 010.
+-- during each Week. Run after 011.
 
 begin;
 

@@ -74,22 +74,23 @@ Student browser ─┘
 | `habit_ticks` | Student ticks a Habit, at most once a day. Deleted with the Habit. |
 
 SQL files in `supabase/migrations/`, run in this order (a fresh setup skips 005).
-001–005 are the original schema; 003 and 005 also seeded the Missions of Weeks 1–8
-(19 Oct – 13 Dec 2026). Weeks are not stored: they are computed from the Course dates
-(`src/lib/weeks.ts`), so 010 drops the old `study_weeks` table and the week columns
-but keeps the Missions and their ticks.
+001–005 are the original schema; 003 and 005 also seeded the old 8-week calendar.
+010 dropped that calendar (ADR 0001), and 011 brings the Missions back (ADR 0002)
+without a week column: Weeks are not stored but computed from the Course dates
+(`src/lib/weeks.ts`). 011 re-seeds the Missions of Weeks 1–8 (19 Oct – 13 Dec 2026).
 
-1. `001_schema.sql` – profiles, vocabulary, test results, Missions and Mission ticks (and the retired `study_weeks`)
+1. `001_schema.sql` – profiles, vocabulary, test results and the old calendar tables
 2. `002_rls.sql` – Row Level Security policies
-3. `003_seed.sql` – starter vocabulary and the Missions of Weeks 1–8. Fresh databases only.
+3. `003_seed.sql` – starter vocabulary (and the old calendar). Fresh databases only.
 4. `004_set_teacher.sql` – gives the teacher account its role (run after creating users)
 5. `005_replace_plan.sql` – only for databases seeded before it; skip it on a fresh setup
 6. `006_tracks_goals.sql` – Skill tracks, Stage Goals and Goal ticks, with the starting Goals
 7. `007_habits.sql` – Stage Habits and Habit ticks, with the starting Habits
 8. `008_result_details.sql` – Writing results, Listening Section scores, Reading wrong answers per Question type; the teacher can add results
 9. `009_course.sql` – Course start and end date (2026-10-19 to 2027-04-19 at first)
-10. `010_remove_calendar.sql` – drops `study_weeks` and the week columns (Weeks now come from the Course dates), keeps the Missions and their ticks, and allows Writing Missions
-11. `011_stage_entries.sql` – the Stage history and the trigger on `tracks` that adds to it, filled once from the current tracks
+10. `010_remove_calendar.sql` – drops the old calendar tables and the vocabulary week column
+11. `011_missions.sql` – Missions and Mission ticks again, with no week column and Writing allowed; re-seeds Weeks 1–8
+12. `012_stage_entries.sql` – the Stage history and the trigger on `tracks` that adds to it, filled once from the current tracks
 
 ## Setup
 
@@ -116,7 +117,7 @@ but keeps the Missions and their ticks.
 2. Repeat for `student@ielts.local` with the student's PIN.
 3. In the SQL Editor run `supabase/migrations/004_set_teacher.sql`.
    The final `select` should show `teacher | teacher` and `student | student`.
-4. Run `006_tracks_goals.sql` to `011_stage_entries.sql` in order (skip `005`).
+4. Run `006_tracks_goals.sql` to `012_stage_entries.sql` in order (skip `005`).
    The `select` at the end of 006 and 007 lists the starting Goals and Habits per Stage.
 
 To change a PIN later: **Authentication → Users → … → Change password**
