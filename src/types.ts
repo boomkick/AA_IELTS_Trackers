@@ -76,6 +76,42 @@ export interface TestResult {
 export type SectionScores = [number, number, number, number]
 export type WritingTask = 1 | 2
 
+/** Class (`teacher_session`), Self-study or Homework. */
+export type MissionType = 'teacher_session' | 'self_study' | 'homework'
+
+/** A dated piece of work in a Week. Its Week comes from its date. */
+export interface Mission {
+  id: string
+  date: string
+  /** Class only, HH:mm */
+  startTime?: string
+  endTime?: string
+  durationMin: number
+  type: MissionType
+  skill: Skill
+  title: string
+  description: string
+  /** Homework only */
+  dueDate?: string
+}
+
+/** A Mission being added (no id yet) or edited. */
+export type MissionDraft = Omit<Mission, 'id'> & { id?: string }
+
+/** Stage history: a track entered `stage` on `enteredOn` (started or advanced). */
+export interface StageEntry {
+  skill: Skill
+  stage: StageKey
+  enteredOn: string
+}
+
+/** A Monday-to-Sunday block of the Course, numbered from 1 (see src/lib/weeks.ts). */
+export interface Week {
+  number: number
+  startDate: string
+  endDate: string
+}
+
 /** The coaching programme's dates. The end date moves to the exam date once it's booked. */
 export interface Course {
   startDate: string

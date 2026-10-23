@@ -1,18 +1,19 @@
 import { NavLink, Outlet } from 'react-router-dom'
-import { BookOpen, GraduationCap, LayoutDashboard, LineChart, LogOut, Milestone } from 'lucide-react'
+import { BookOpen, CalendarDays, CalendarRange, GraduationCap, LineChart, LogOut, Milestone } from 'lucide-react'
 import { useStore } from '@/lib/store'
-import { cn } from '@/lib/utils'
+import { cn, fmtDate } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 
 const NAV = [
-  { to: '/', label: 'Dashboard', short: 'Home', icon: LayoutDashboard },
+  { to: '/', label: 'This week', short: 'Week', icon: CalendarDays },
+  { to: '/plan', label: 'Course plan', short: 'Plan', icon: CalendarRange },
   { to: '/stages', label: 'Stages', short: 'Stages', icon: Milestone },
   { to: '/vocabulary', label: 'Vocabulary', short: 'Vocab', icon: BookOpen },
   { to: '/progress', label: 'Progress', short: 'Progress', icon: LineChart },
 ]
 
 export function AppShell() {
-  const { user, logout, dataLoading, dataError } = useStore()
+  const { user, logout, dataLoading, dataError, course } = useStore()
   if (!user) return null
 
   let content = <Outlet />
@@ -29,7 +30,7 @@ export function AppShell() {
           </div>
           <div>
             <p className="text-sm font-semibold text-slate-900">IELTS Tracker</p>
-            <p className="text-xs text-slate-500">19 Oct – 13 Dec 2026</p>
+            {course && <p className="text-xs text-slate-500">{fmtDate(course.startDate, 'd MMM yyyy')} – {fmtDate(course.endDate, 'd MMM yyyy')}</p>}
           </div>
         </div>
         <nav className="flex-1 space-y-0.5 px-3">
@@ -85,7 +86,7 @@ export function AppShell() {
       </div>
 
       {/* Mobile bottom nav */}
-      <nav className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-4 border-t border-slate-200 bg-white pb-[env(safe-area-inset-bottom)] md:hidden">
+      <nav className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t border-slate-200 bg-white pb-[env(safe-area-inset-bottom)] md:hidden">
         {NAV.map(({ to, short, icon: Icon }) => (
           <NavLink
             key={to}

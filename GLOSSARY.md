@@ -24,7 +24,23 @@ _Avoid_: Milestone, checkpoint, unlock
 
 **Goal**:
 A one-off piece of work that must be finished within a Stage, such as finishing a book's Listening chapters or sitting a Full test; it may carry a due date.
-_Avoid_: Mission, task, objective, homework
+_Avoid_: task, objective
+
+**Week**:
+A Monday-to-Sunday block of the Course, numbered from 1 at the Course start date; Weeks are computed from the Course dates and run to its end.
+_Avoid_: Stage, sprint
+
+**Mission**:
+A dated piece of work in a Week, of one of three types: a Class with the teacher, Self-study, or Homework (which also carries a due date); the student ticks it done.
+_Avoid_: Task, Goal, Habit
+
+**This-week board**:
+The landing page: the current Week's Missions by day, beside the current Stages' Goals, today's Habits, weeks left and the next Full test.
+_Avoid_: Dashboard, home
+
+**Course plan**:
+The page showing every Week of the Course against the Stage each Skill track was in that Week, with the picked Week's Missions grouped by type.
+_Avoid_: Study plan, timeline
 
 **Habit**:
 A recurring practice the student repeats on a fixed rhythm (daily or so many times a week) for as long as its Stage lasts, such as daily BBC Learning English or dictation twice a week.
