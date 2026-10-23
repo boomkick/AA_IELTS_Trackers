@@ -75,14 +75,15 @@ function Board({ course }: { course: Course }) {
         })}
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-[1fr_300px]">
+      {/* day columns get the full width; the track cards follow in a row so neither is squeezed on a laptop screen */}
+      <div className="space-y-4">
         {weekMissions.length === 0 ? (
           <Card className="flex flex-col items-center justify-center gap-3 px-6 py-12 text-center">
             <p className="font-medium text-slate-900">No Missions yet</p>
             {addButton}
           </Card>
         ) : (
-          <div className="grid content-start gap-2 sm:grid-cols-2 xl:grid-cols-7">
+          <div className="grid content-start gap-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7">
             {weekDays(week).map((date) => (
               <div
                 key={date}
@@ -106,7 +107,9 @@ function Board({ course }: { course: Course }) {
         )}
 
         <aside className="space-y-3">
-          {started.map((t) => <TrackCard key={t.skill} track={t} />)}
+          <div className="grid items-start gap-3 md:grid-cols-2 xl:grid-cols-3">
+            {started.map((t) => <TrackCard key={t.skill} track={t} />)}
+          </div>
           {notStarted.map((t) => <NotStartedLine key={t.skill} track={t} />)}
           {isTeacher && <p className="text-xs text-slate-400">Only the student can tick Missions and Habits. You see their status here.</p>}
         </aside>

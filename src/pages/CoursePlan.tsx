@@ -130,7 +130,7 @@ function Plan({ course }: { course: Course }) {
       </div>
       {weekMissions.length === 0 && <p className="text-sm text-slate-500">No Missions yet.</p>}
       {weekMissions.length > 0 && (
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-4 lg:grid-cols-3">
           {TYPE_ORDER.map((type) => {
             const list = weekMissions.filter((m) => m.type === type)
             return (
